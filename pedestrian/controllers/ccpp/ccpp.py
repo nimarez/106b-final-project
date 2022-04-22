@@ -1,7 +1,7 @@
-from controller import Robot, Camera, Motor
+from controller import Robot, Camera, Motor, Node, Supervisor
 
 
-class CCPPController(Robot):
+class CCPPController(Supervisor):
     def __init__(self):
         super(CCPPController, self).__init__()
         self.timeStep = 64  # set the control time step
@@ -20,12 +20,21 @@ class CCPPController(Robot):
         self.left_motor.setPosition(float('inf'))
         self.left_motor.setVelocity(6.67)
 
-
+        
     def run(self):
         # main control loop: perform simulation steps of 32 milliseconds
         # and leave the loop when the simulation is over
-        while self.step(self.timeStep) != -1:
+        while self.step(self.timeStep) != -1: 
+            if self.getSupervisor():
+                position = self.getSelf().getPosition()
+                if (4.95 < position[0] ** 2 + position[1] ** 2 < 5.05):
+                    self.left_motor.setVelocity(-self.left_motor.getVelocity())
+                    self.right_motor.setVelocity(-self.right_motor.getVelocity())
+
+
+                    
             pass
+            
 
 # main Python program
 controller = CCPPController()
