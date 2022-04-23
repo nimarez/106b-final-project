@@ -15,6 +15,8 @@ class Planner(object):
         # Returns an array of squares to visit indexed by time. 
         # Thing to consider: we must complete the other side of squares we already visited first, if we decide to replan
         # - Solution: Replan given the current completed prefix of the plan, record big squares as being fully cleaned, partially cleaned, etc.
+        # Future work:
+        # - Make spanning tree thing work for obstacles which only cover 1/4 of the mega cell
         pass
 
     def main(self, root_node, human_handle):
