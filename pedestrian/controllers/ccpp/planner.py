@@ -12,8 +12,8 @@ class Planner(object):
         plt.matshow(extended_occupancy_map)
         if plan is not None:
             for p1, p2 in zip(plan[:-1], plan[1:]):
-                x1 = [p1[1], p2[1]]
-                y1 = [p1[0], p2[0]]
+                x1 = [p1[0], p2[0]]
+                y1 = [p1[1], p2[1]]
                 plt.plot(x1, y1, color="blue")
         plt.show()
 
@@ -41,7 +41,7 @@ class Planner(object):
             visited.add(current)
             current_edges = [False, False, False, False]
             for i, (xdiff, ydiff) in enumerate(self.coords_to_check):
-                newx, newy = current[0] + xdiff, current[0] + ydiff
+                newx, newy = current[0] + xdiff, current[1] + ydiff
                 if newx < 0 or newy < 0 or newx >= len(large_map[0]) or newy >= len(large_map) or large_map[newy][newx] == 1:
                     continue
                 to_visit.append((newx, newy))
@@ -63,7 +63,7 @@ class Planner(object):
                 s2 = extended_occupancy_map[2*y + 1][2*x]
                 s3 = extended_occupancy_map[2*y][2*x + 1]
                 s4 = extended_occupancy_map[2*y + 1][2*x + 1]
-                row.append(int(np.all(np.array([s1, s2, s3, s4]) == np.zeros(4))))
+                row.append(int(not(np.all(np.array([s1, s2, s3, s4]) == np.zeros(4)))))
             result.append(row)
         return result
 
@@ -83,6 +83,13 @@ class Planner(object):
             (1, 1): (0, -1),
             (1, 0): (-1, 0)
         }
+        # Turning in a corner, need special case
+        next_map_right_turn = {
+            (0, 0): (-1, 0),
+            (0, 1): (0, 1),
+            (1, 1): (1, 0),
+            (1, 0): (0, -1)
+        }
         # Always start in the top right so we can go counterclockwise
         path = [(start_pos_large[0] * 2 + 1, start_pos_large[1] * 2)]
         while stack:
@@ -100,15 +107,22 @@ class Planner(object):
                 # TODO: This might fail when we have a tree of size 1 because previous is never set
                 # Finds the counterclockwise shortest path from the last position to the closest position in the new square
                 current_position = path[-1]
-                while True:
-                    xmod, ymod = current_position[0] % 2, current_position[1] % 2
-                    dx, dy = next_map[(xmod, ymod)]
-                    current_position = (current_position[0] + dx, current_position[1] + dy)
-                    path.append(current_position)
-                    # Stop when, if we continue in the same direction, we end up in the target square
-                    if (current_position[0] + dx) // 2 == current[0] and (current_position[1] + dy) // 2 == current[1]:
-                        path.append((current_position[0] + dx, current_position[1] + dy))
-                        break
+                xmod, ymod = current_position[0] % 2, current_position[1] % 2
+                dx, dy = next_map_right_turn[(xmod, ymod)]
+                right_turn_pos = (current_position[0] + dx, current_position[1] + dy)
+                if right_turn_pos[0] // 2 == current[0] and right_turn_pos[1] // 2 == current[1]:
+                    path.append(right_turn_pos)
+                else:
+                    while True:
+                        xmod, ymod = current_position[0] % 2, current_position[1] % 2
+                        dx, dy = next_map[(xmod, ymod)]
+                        current_position = (current_position[0] + dx, current_position[1] + dy)
+                        path.append(current_position)
+                        # Stop when, if we continue in the same direction, we end up in the target square
+                        new_position = (current_position[0] + dx, current_position[1] + dy)
+                        if new_position[0] // 2 == current[0] and new_position[1] // 2 == current[1]:
+                            path.append(new_position)
+                            break
             previous = current
         return path
 
@@ -163,7 +177,9 @@ def double_array(arr):
 if __name__ == "__main__":
     p = Planner(6)
     occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+    occ = double_array(occ)
+    #occ = double_array([[0, 0], [1, 0]])
     start_pos = (0, 0)
     #plan = [(0, 0), (0, 1), (0, 2), (1, 2), (2, 2)]
     plan = p._generate_spanning_tree_path(occ, [start_pos])
-    p.visualize_plan(double_array(occ), [], plan)
+    p.visualize_plan(occ, [], plan)
