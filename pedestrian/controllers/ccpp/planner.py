@@ -1,6 +1,7 @@
 class Planner(object):
-    def __init__(self):
-        self.curr_plan
+    def __init__(self, dim):
+        # Dim is a tuple for size of the world
+        self.dim = dim
 
     def generate_occupancy_map(self, root_node):
         # Takes in root node of the world
