@@ -6,7 +6,7 @@ class Planner(object):
         # Dim is a tuple for size of the world
         self.dim = dim
         # Up left down right
-        self.coords_to_check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
+        self.coords_to_check = [(0, -1), (-1, 0), (0, 1), (1, 0)]
 
     def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan):
         plt.matshow(extended_occupancy_map)
@@ -90,15 +90,31 @@ class Planner(object):
             (1, 1): (1, 0),
             (1, 0): (0, -1)
         }
+        # We shift the next direction to check based on where we are in the square
+        # For instance, at top right we check the up direction first
+        coord_check_shift = {
+            (0, 0): 0,
+            (0, 1): 1, 
+            (1, 1): 2,
+            (1, 0): 3
+        }
         # Always start in the top right so we can go counterclockwise
         path = [(start_pos_large[0] * 2 + 1, start_pos_large[1] * 2)]
         while stack:
             current = stack.pop()
             # Don't check for visited here because we're probably already visited
             visited.add(current)
-            for i, (xdiff, ydiff) in enumerate(self.coords_to_check):
+            current_position = path[-1]
+            xmod, ymod = current_position[0] % 2, current_position[1] % 2
+            shift = coord_check_shift[(xmod, ymod)]
+            shifted_coords = self.coords_to_check[shift:] + self.coords_to_check[:shift]
+            print("Shift", shift)
+            print(shifted_coords)
+            print(self.coords_to_check)
+            for unshifted_i, (xdiff, ydiff) in enumerate(shifted_coords):
+                index = (unshifted_i + shift) % 4
                 new_pos = (current[0] + xdiff, current[1] + ydiff)
-                if tree[current][i] and new_pos not in visited:
+                if tree[current][index] and new_pos not in visited:
                     # We want to visit current against at the end, and repeat the same thing
                     stack.append(current)
                     stack.append(new_pos)
@@ -106,8 +122,6 @@ class Planner(object):
             if previous is not None:
                 # TODO: This might fail when we have a tree of size 1 because previous is never set
                 # Finds the counterclockwise shortest path from the last position to the closest position in the new square
-                current_position = path[-1]
-                xmod, ymod = current_position[0] % 2, current_position[1] % 2
                 dx, dy = next_map_right_turn[(xmod, ymod)]
                 right_turn_pos = (current_position[0] + dx, current_position[1] + dy)
                 if right_turn_pos[0] // 2 == current[0] and right_turn_pos[1] // 2 == current[1]:
@@ -176,8 +190,11 @@ def double_array(arr):
 
 if __name__ == "__main__":
     p = Planner(6)
-    occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-    occ = double_array(occ)
+    #occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+    prob = 0.95
+    occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
+    occ[0][0] = 0
+    #occ = double_array(occ)
     #occ = double_array([[0, 0], [1, 0]])
     start_pos = (0, 0)
     #plan = [(0, 0), (0, 1), (0, 2), (1, 2), (2, 2)]
