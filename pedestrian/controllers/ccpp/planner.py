@@ -67,12 +67,12 @@ class Planner(object):
             result.append(row)
         return result
 
-    def _walk_tree(self, tree, start_pos_large):
+    def _walk_tree(self, tree, start_pos):
         """
-        Takes in a tree (in large coordinates) and start_pos (also in large coordinates !!) and produces a path from walking that tree
+        Takes in a tree (in large coordinates) and start_pos (in small coordinates !!) and produces a path from walking that tree
         TODO: Handle prefix
         """
-        stack = [start_pos_large]
+        stack = [(start_pos[0] // 2, start_pos[1] // 2)]
         previous = None
         visited = set()
         # xmod, ymod --> next xdiff, next ydiff
@@ -93,26 +93,25 @@ class Planner(object):
         # We shift the next direction to check based on where we are in the square
         # For instance, at top right we check the up direction first
         coord_check_shift = {
-            (0, 0): 0,
-            (0, 1): 1, 
-            (1, 1): 2,
-            (1, 0): 3
+            (0, 0): 1,
+            (0, 1): 2, 
+            (1, 1): 3,
+            (1, 0): 0
         }
         # Always start in the top right so we can go counterclockwise
-        path = [(start_pos_large[0] * 2 + 1, start_pos_large[1] * 2)]
+        path = [start_pos]
         while stack:
             current = stack.pop()
+            #print("Running on", current)
             # Don't check for visited here because we're probably already visited
             visited.add(current)
             current_position = path[-1]
             xmod, ymod = current_position[0] % 2, current_position[1] % 2
             shift = coord_check_shift[(xmod, ymod)]
             shifted_coords = self.coords_to_check[shift:] + self.coords_to_check[:shift]
-            print("Shift", shift)
-            print(shifted_coords)
-            print(self.coords_to_check)
             for unshifted_i, (xdiff, ydiff) in enumerate(shifted_coords):
                 index = (unshifted_i + shift) % 4
+                #print("Checking", ["up", "down", "left", "right"][index], "for", current_position)
                 new_pos = (current[0] + xdiff, current[1] + ydiff)
                 if tree[current][index] and new_pos not in visited:
                     # We want to visit current against at the end, and repeat the same thing
@@ -147,9 +146,7 @@ class Planner(object):
         start_pos = prefix[-1]
         large_cells = self._largify_cells(extended_occupancy_map)
         tree = self._generate_spanning_tree(large_cells, start_pos)
-        start_pos_big = (start_pos[0] // 2, start_pos[1] // 2)
-        # We append start pos because we migth not start out at the intended location on the big square
-        return [start_pos] + self._walk_tree(tree, start_pos_big)
+        return self._walk_tree(tree, start_pos)
 
     def generate_plan(self, extended_occupancy_map, dynamic_objects, curr_plan):
         # Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
@@ -190,13 +187,23 @@ def double_array(arr):
 
 if __name__ == "__main__":
     p = Planner(6)
+
+    # Uncomment to use standard 6x6 template
     #occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+    #occ = double_array(occ)
+    #start_pos = (0, 0)
+
+    # Uncomment to generate random occupancy
     prob = 0.95
     occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
     occ[0][0] = 0
-    #occ = double_array(occ)
-    #occ = double_array([[0, 0], [1, 0]])
+    occ = double_array(occ)
     start_pos = (0, 0)
-    #plan = [(0, 0), (0, 1), (0, 2), (1, 2), (2, 2)]
+
+    # Edge cases
+    #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
+    #occ = double_array(occ)
+    #start_pos = (0, 2)
+
     plan = p._generate_spanning_tree_path(occ, [start_pos])
     p.visualize_plan(occ, [], plan)
