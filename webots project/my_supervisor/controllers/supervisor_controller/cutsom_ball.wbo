@@ -1,0 +1,20 @@
+#VRML_OBJ R2022a
+
+DEF BALL Solid {
+  translation 0 1 1
+  children [
+    Shape {
+      appearance DEF SPHERE_COLOR PBRAppearance {
+        baseColor 0 1 0
+      }
+      geometry DEF SPHERE_GEOMETRY Sphere {
+        radius 0.2
+      }
+    }
+  ]
+  boundingObject USE SPHERE_GEOMETRY
+  physics Physics {
+    density -1
+    mass 0.1
+  }
+}

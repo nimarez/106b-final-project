@@ -1,0 +1,67 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.43857227494500733 -0.02397002615228679 0.8983762004282059 3.239721221473897
+  position 8.920494455191594 1.100611479939605 12.173206142708269
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 10 10
+}
+Robot {
+  name "supervisor"
+  controller "supervisor_controller"
+  supervisor TRUE
+}
+DEF WALLS Group {
+  children [
+    Solid {
+      translation -0.231235 -0.0116369 0.5
+      children [
+        Shape {
+          appearance DEF WALL_COLOR PBRAppearance {
+            baseColor 0 1 0
+          }
+          geometry DEF WALL_GEOMETRY Box {
+            size 1 0.25 1
+          }
+        }
+      ]
+      boundingObject USE WALL_GEOMETRY
+    }
+    Solid {
+      translation 2.27743 -1.99778 0.5
+      children [
+        Shape {
+          appearance DEF WALL_COLOR PBRAppearance {
+            baseColor 0 1 0
+          }
+          geometry DEF WALL_GEOMETRY Box {
+            size 1 0.25 1
+          }
+        }
+      ]
+      name "solid(1)"
+      boundingObject USE WALL_GEOMETRY
+    }
+    Solid {
+      translation -2.8311 -3.18435 0.5
+      children [
+        Shape {
+          appearance DEF WALL_COLOR PBRAppearance {
+            baseColor 0 1 0
+          }
+          geometry DEF WALL_GEOMETRY Box {
+            size 1 0.25 1
+          }
+        }
+      ]
+      name "solid(2)"
+      boundingObject USE WALL_GEOMETRY
+    }
+  ]
+}
