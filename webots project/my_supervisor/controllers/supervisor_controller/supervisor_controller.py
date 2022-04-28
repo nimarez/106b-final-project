@@ -35,8 +35,9 @@ def generate_occupancy_map(root_node):
         wall = children_field.getMFNode(i)
         
         position = wall.getPosition()
-        add_rectangle_to_occupancy([1, 0.25, 1], position, oc_map, 10, diff)
-        print(oc_map)
+        size = wall.getField('children').getMFNode(0).getField('geometry').getSFNode().getField('size').getSFVec3f()
+        
+        add_rectangle_to_occupancy(size, position, oc_map, 10, diff)
         
         #print(get_grid_index_at_pos(position[0], position[1], 10, diff))
         
@@ -45,6 +46,7 @@ def generate_occupancy_map(root_node):
         #size = wall.getField('children').getField("Shape").getField("geometry").getField("size")
         
         #print(size)
+    print(oc_map)
         
     #translation_field = wall_node.getField('translation')
     #print(translation_field.)
@@ -57,15 +59,13 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, diff):
     # start with top left corner
     current_x = position[0] - size[0]
     current_y = position[1] - size[1]
-    print("current_x", current_x)
     
     step_value = math.floor(map_size/diff)
-    print("step_value", step_value)
     
     while current_x < position[0] + size[0]:
         while current_y < position[1] + size[1]:
             grid = get_grid_index_at_pos(current_x, current_y, map_size, diff)
-            oc_map[grid[1]][grid[0]] = 1
+            oc_map[grid[0]][grid[1]] = 1
             current_y += step_value
         current_x += step_value
         current_y = position[1] - size[1]
