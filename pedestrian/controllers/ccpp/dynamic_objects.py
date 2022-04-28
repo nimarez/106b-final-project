@@ -1,6 +1,7 @@
 import heapq
 from pathlib import Path
 import numpy as np
+from collections import deque
 class DynamicObject(object):
     def __init__(self):
         pass
@@ -8,13 +9,34 @@ class DynamicObject(object):
     def get_traj(self):
         pass
 
+
+class Projectile(DynamicObject):
+    def __init__(self, start, velocity):
+        # A projectile just moves in a straight line with constant velocity, not necessarily traveling along squares
+        self.start = start
+        self.velocity = velocity
+
+    def get_traj(self, extended_occupancy_map, dt=0.5):
+        traj, t = {}, 0
+        curr_x, curr_y = self.start
+        vel_x, vel_y = self.velocity
+        while curr_x >=0 and curr_y >= 0 and curr_x < len(extended_occupancy_map[0]) \
+                                        and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[curr_y][curr_x]:
+            traj[t] = (curr_x, curr_y)
+            t += dt
+            curr_x += vel_x * dt
+            curr_y += vel_y * dt
+        return traj
+
+
+
 class Human(DynamicObject):
-    def __init__(self, start, goal, velocity):
+    def __init__(self, start, goal, speed):
         # start is the start square in small coordinates
         # goal is end goal in small coordinates
         self.start = start
         self.goal = goal
-        self.velocity = velocity # squares per second I guess?
+        self.speed = speed # squares per second I guess?
         self.directions = [(0, -1), (-1, 0), (0, 1), (1, 0)]
     
     def get_traj(self, extended_occupancy_map, dt=0.5):
@@ -25,15 +47,15 @@ class Human(DynamicObject):
         start_x, start_y = self.start
         goal_x, goal_y = self.goal
         if (extended_occupancy_map[start_y][start_x] or extended_occupancy_map[goal_y][goal_x]):
-            raise Exception("Can't start in occupied square")
+            raise Exception("Can't start or end in occupied square")
 
         # BFS
         found_goal = False
-        queue = [self.start]
+        queue = deque([self.start])
         back = {}
         visited = set()
         while queue:
-            curr = queue.pop(0)
+            curr = queue.popleft()
             if (curr == self.goal):
                 found_goal = True
                 break
@@ -49,16 +71,14 @@ class Human(DynamicObject):
                     
         # retrace path
         if found_goal:
-            path = [self.goal]
+            path = [self.start, self.goal]
             ptr = self.goal
             while back[ptr] != self.start:
                 ptr = back[ptr]
-                path.append(ptr)
-            path.append(self.start)
-            path.reverse()
+                path.insert(1, ptr)
             traj = {}
-            for t in list(np.arange(0, len(path) / self.velocity, dt)):
-                traj[round(t,3)] = path[int(t * self.velocity)]
+            for t in list(np.arange(0, len(path) / self.speed, dt)):
+                traj[round(t,3)] = path[int(t * self.speed)]
             return traj
         else:
             print("Goal not found")
