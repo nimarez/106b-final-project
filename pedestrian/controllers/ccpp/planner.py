@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from dynamic_objects import DynamicObject, Human
+
 
 class Planner(object):
     def __init__(self, dim):
@@ -15,6 +17,9 @@ class Planner(object):
                 x1 = [p1[0], p2[0]]
                 y1 = [p1[1], p2[1]]
                 plt.plot(x1, y1, color="blue")
+        plt.gca().set_xticks([x - 0.5 for x in plt.gca().get_xticks()][1:], minor='true')
+        plt.gca().set_yticks([y - 0.5 for y in plt.gca().get_yticks()][1:], minor='true')
+        plt.grid(which='minor')
         plt.show()
 
     def generate_occupancy_map(self, root_node):
@@ -124,6 +129,7 @@ class Planner(object):
                 dx, dy = next_map_right_turn[(xmod, ymod)]
                 right_turn_pos = (current_position[0] + dx, current_position[1] + dy)
                 if right_turn_pos[0] // 2 == current[0] and right_turn_pos[1] // 2 == current[1]:
+                    # Turns stay in the same square
                     path.append(right_turn_pos)
                 else:
                     while True:
@@ -150,7 +156,7 @@ class Planner(object):
 
     def generate_plan(self, extended_occupancy_map, dynamic_objects, curr_plan):
         # Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
-        # Dynamic objects is a representation of human intent, e.g. list of dict of time to coordinate
+        # Dynamic objects is a representation of human intent, e.g. list of dict of time to coordinate.
         # Returns an array of squares to visit indexed by time. 
         # Thing to consider: we must complete the other side of squares we already visited first, if we decide to replan
         # - Solution: Replan given the current completed prefix of the plan, record big squares as being fully cleaned, partially cleaned, etc.
@@ -189,16 +195,20 @@ if __name__ == "__main__":
     p = Planner(6)
 
     # Uncomment to use standard 6x6 template
-    #occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-    #occ = double_array(occ)
-    #start_pos = (0, 0)
-
-    # Uncomment to generate random occupancy
-    prob = 0.95
-    occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
-    occ[0][0] = 0
+    occ = np.array([[0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
     occ = double_array(occ)
     start_pos = (0, 0)
+
+    human = Human((0, 0), (0, 8), 1)
+    human_traj = human.get_traj(occ, dt=1)
+    print(human_traj)
+
+    # Uncomment to generate random occupancy
+    # prob = 0.95
+    # occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
+    # occ[0][0] = 0
+    # occ = double_array(occ)
+    # start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
