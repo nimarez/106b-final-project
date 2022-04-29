@@ -1,4 +1,5 @@
 from controller import Robot, Camera, Motor, Node, Supervisor
+from collections import namedtuple
 
 
 class CCPPController(Supervisor):
@@ -19,22 +20,35 @@ class CCPPController(Supervisor):
         self.left_motor = self.getDevice("left wheel motor")
         self.left_motor.setPosition(float('inf'))
         self.left_motor.setVelocity(6.67)
-
         
+        Box = namedtuple('Box', ['translation', 'rotation', 'size'])
+        
+        if self.getSupervisor():
+            self.robot = self.getSelf()
+            arena = self.getFromDef("ARENA")
+            size, _ = arena.getField("floorSize").getSFVec2f() # Assume square
+            boxes_field = self.getFromDef("STATIC").getField("children")
+            boxes = []
+            for i in range(boxes_field.getCount()):
+                box_obj = boxes_field.getMFNode(i)
+                trans = box_obj.getField("translation").getSFVec3f()
+                rot = box_obj.getField("rotation").getSFRotation()
+                size = box_obj.getField("size").getSFVec3f()
+                boxes.append(Box(trans, rot, size))
+                print(boxes[0].rotation[2])
+            
+          
     def run(self):
         # main control loop: perform simulation steps of 32 milliseconds
         # and leave the loop when the simulation is over
         while self.step(self.timeStep) != -1: 
             if self.getSupervisor():
-                position = self.getSelf().getPosition()
+                position = self.robot.getPosition()
                 if (4.95 < position[0] ** 2 + position[1] ** 2 < 5.05):
                     self.left_motor.setVelocity(-self.left_motor.getVelocity())
                     self.right_motor.setVelocity(-self.right_motor.getVelocity())
-
-
-                    
+    
             pass
-            
 
 # main Python program
 controller = CCPPController()
