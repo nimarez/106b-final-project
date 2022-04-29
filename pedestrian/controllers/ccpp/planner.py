@@ -15,13 +15,9 @@ class Planner(object):
         plt.matshow(extended_occupancy_map)
         trajectories = [obj.get_traj(extended_occupancy_map) for obj in dynamic_objects]
         is_plan = True
-        for traj in [plan] + trajectories:
-            times = sorted(list(traj.keys()))
-            x = []
-            y = []
-            for t in times:
-                x.append(traj[t][0])
-                y.append(traj[t][1])
+        for (times, points) in [plan] + trajectories:
+            x = [p[0] for p in points]
+            y = [p[1] for p in points]
             if is_plan:
                 color = "b-"
                 textcolor = "aquamarine"
@@ -53,18 +49,21 @@ class Planner(object):
         NOTE: This is not deterministic, we can generate random trees each time
         NOTE: Edges are only one way, from parent to child
         """
-        # TODO: Handle previous tree
         # Previous tree should just be a line -- assert this before
-        # Add the first node to the stack and make sure that if it's in the previous tree, that edge is queued first
+        if previous_tree is not None:
+            curr, curr_val = start_pos, previous_tree[start_pos]
+            while any(curr_val):
+                index = curr_val.index(True)
+                curr = (curr[0] + self.coords_to_check[index], curr[1] + self.coords_to_check[index])
+                curr_val = previous_tree[curr]
+                if sum(curr_val) > 1:
+                    raise Exception("Previous tree isn't a line:(")
         to_visit = [(None, None, start_pos)]
         edges = {}
         visited = set()
-        # Queue all nodes into to visit
-        # This might be enough? Except adds extra edges
-        # TODO Look into this
         while to_visit:
             parent, parent_index, current = to_visit.pop()
-            print("Visiting", current)
+            #print("Visiting", current)
             if current in visited:
                 continue
             if current not in edges:
@@ -81,7 +80,12 @@ class Planner(object):
                    or large_map[newy][newx] != 0 or (newx, newy) in visited:
                     continue
                 to_visit.append((current, i, (newx, newy)))
-        print(edges)
+            # If we have a previous tree (line), make sure the edges are appended last so they get visited first
+            #   and thus added to the tree
+            if previous_tree is not None and current in previous_tree and True in previous_tree[current]:
+                index = previous_tree[current].index(True)
+                newcoord = current[0] + self.coords_to_check[index][0], current[1] + self.coords_to_check[index][1]
+                to_visit.append((current, index, newcoord))
         return edges
 
     def _largify_cells(self, extended_occupancy_map):
@@ -102,18 +106,20 @@ class Planner(object):
             result.append(row)
         return result
 
-    def _prune_tree(self, path, tree, current_position):
+    def _prune_tree(self, tree, current_position):
         """
-        path: Returned from _walk_tree
         tree: Returned from generated spanning tree
         current_position: Current location in tree
         Prunes the tree to only contain nodes which are partially visited
         This is useful because we can mark the fully visited nodes as obstacles essentially
             It costs nothing to go around them because the paths are all uniform length because space-filling
         Also removes the unvisited squares, because we want to regenerate the path if we encounter a dynamic obstacle 
-        Returns pruned tree
+        Returns pruned tree -- this should be a line
         """
         # TODO
+        # NOTE: Assumes that walk tree is deterministic (!!)
+        path = self._walk_tree(tree, start_pos)
+        points = path.values()
         pass
 
     def _walk_tree(self, tree, start_pos):
@@ -153,7 +159,7 @@ class Planner(object):
             visited.add(current)
             current_position = path[-1]
             xmod, ymod = current_position[0] % 2, current_position[1] % 2
-            print("Big square", current, "previously at", current_position)
+            #print("Big square", current, "previously at", current_position)
             if previous is not None:
                 # TODO: This might fail when we have a tree of size 1 because previous is never set
                 # Finds the counterclockwise shortest path from the last position to the closest position in the new square
@@ -180,14 +186,14 @@ class Planner(object):
             shifted_coords = self.coords_to_check[shift:] + self.coords_to_check[:shift]
             for unshifted_i, (xdiff, ydiff) in enumerate(shifted_coords):
                 index = (unshifted_i + shift) % 4
-                print("Checking", ["up", "left", "down", "right"][index], "for", current_position)
-                print((xdiff, ydiff))
+                #print("Checking", ["up", "left", "down", "right"][index], "for", current_position)
+                #print((xdiff, ydiff))
                 new_pos = (current[0] + xdiff, current[1] + ydiff)
                 if tree[current][index] and new_pos not in visited:
                     # We want to visit current against at the end, and repeat the same thing
                     stack.append(current)
                     stack.append(new_pos)
-                    print("Ending")
+                    #print("Ending")
                     break
             previous = current
         return path
@@ -208,17 +214,17 @@ class Planner(object):
         pruned_tree = None
         if current_pos is not None:
             # TODO: Update occupancy map with fully occupied stuff from previous run, should probably be done outside this function
-            # NOTE: Assumes that walk tree is deterministic (!!)
-            previous_path = self._walk_tree(previous_tree, start_pos)
-            pruned_tree = self._prune_tree(previous_path, previous_tree, current_position)
+            pruned_tree = self._prune_tree(previous_tree, current_pos)
         large_cells = self._largify_cells(extended_occupancy_map)
         tree = self._generate_spanning_tree(large_cells, start_pos, pruned_tree)
         path = self._walk_tree(tree, start_pos)
         # Assumes the robot moves with constant velocity of 1 square/dt
-        plan = {}
+        times = []
+        points = []
         for i in range(len(path)):
-            plan[dt*i] = path[i]
-        return plan
+            times.append(dt*i)
+            points.append(path[i])
+        return times, points
 
     def main(self, root_node, human_handle):
         occ = self.generate_occupancy_map(root_node)

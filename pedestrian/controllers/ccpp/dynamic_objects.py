@@ -7,6 +7,7 @@ class DynamicObject(object):
         pass
 
     def get_traj(self):
+        # Return tuple of array of times, array of points
         pass
 
 
@@ -17,16 +18,17 @@ class Projectile(DynamicObject):
         self.velocity = velocity
 
     def get_traj(self, extended_occupancy_map, dt=0.5):
-        traj, t = {}, 0
+        traj_times, traj_points, t = [], [], 0
         curr_x, curr_y = self.start
         vel_x, vel_y = self.velocity
         while curr_x >=0 and curr_y >= 0 and curr_x < len(extended_occupancy_map[0]) \
                                         and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[int(curr_y)][int(curr_x)]:
-            traj[t] = (curr_x, curr_y)
+            traj_times.append(t)
+            traj_points.append((curr_x, curr_y))
             t += dt
             curr_x += vel_x * dt
             curr_y += vel_y * dt
-        return traj
+        return traj_times, traj_points
 
 
 
@@ -76,10 +78,11 @@ class Human(DynamicObject):
             while back[ptr] != self.start:
                 ptr = back[ptr]
                 path.insert(1, ptr)
-            traj = {}
+            traj_times, traj_points = [], []
             for t in list(np.arange(0, len(path) / self.speed, dt)):
-                traj[round(t,3)] = path[int(t * self.speed)]
-            return traj
+                traj_times.append(round(t,3))
+                traj_points.append(path[int(t * self.speed)])
+            return traj_times, traj_points
         else:
             print("Goal not found")
             return None
