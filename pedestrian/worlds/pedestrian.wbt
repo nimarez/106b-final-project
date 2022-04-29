@@ -24,7 +24,7 @@ TexturedBackground {
 }
 TexturedBackgroundLight {
 }
-RectangleArena {
+DEF ARENA RectangleArena {
   floorSize 5 5
 }
 TurtleBot3Burger {
@@ -34,7 +34,7 @@ TurtleBot3Burger {
   hidden position2_0_2 0.16236192502068791
   hidden position3_0_2 12.525721452366327
   hidden position_1_0 1.9795550457411252e-13
-  hidden translation_7 -0.08100057694418833 2.303496717549237e-07 0.004000156601962647
+  hidden translation_7 -0.08100057694418833 2.303496717545799e-07 0.004000156601962648
   hidden rotation_7 0.5852188769953829 0.26156483339522024 0.767530262555942 2.6087420398460885
   controller "ccpp"
   supervisor TRUE

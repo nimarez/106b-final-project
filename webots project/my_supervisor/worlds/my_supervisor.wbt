@@ -27,7 +27,7 @@ DEF WALLS Group {
             baseColor 0 1 0
           }
           geometry DEF WALL_GEOMETRY Box {
-            size 1 0.25 1
+            size 4 0.25 1
           }
         }
       ]
