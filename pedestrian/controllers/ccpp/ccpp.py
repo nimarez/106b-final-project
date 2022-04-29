@@ -35,7 +35,6 @@ class CCPPController(Supervisor):
                 rot = box_obj.getField("rotation").getSFRotation()
                 size = box_obj.getField("size").getSFVec3f()
                 boxes.append(Box(trans, rot, size))
-                print(boxes[0].rotation[2])
             
           
     def run(self):
