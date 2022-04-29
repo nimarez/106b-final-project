@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from dynamic_objects import DynamicObject, Human
+from dynamic_objects import DynamicObject, Human, Projectile
 
 
 class Planner(object):
@@ -10,13 +10,28 @@ class Planner(object):
         # Up left down right
         self.coords_to_check = [(0, -1), (-1, 0), (0, 1), (1, 0)]
 
-    def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan):
+    def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan, t_step=4):
         plt.matshow(extended_occupancy_map)
-        if plan is not None:
-            for p1, p2 in zip(plan[:-1], plan[1:]):
-                x1 = [p1[0], p2[0]]
-                y1 = [p1[1], p2[1]]
-                plt.plot(x1, y1, color="blue")
+        trajectories = [obj.get_traj(extended_occupancy_map) for obj in dynamic_objects]
+        is_plan = True
+        for traj in [plan] + trajectories:
+            times = sorted(list(traj.keys()))
+            x = []
+            y = []
+            for t in times:
+                x.append(traj[t][0])
+                y.append(traj[t][1])
+            if is_plan:
+                color = "b-"
+                textcolor = "aquamarine"
+            else:
+                color = "r-"
+                textcolor = "lightcoral"
+            plt.plot(x, y, color) 
+            for i, (xitem, yitem, t) in enumerate(zip(x, y, times)):
+                if i % t_step == 0:
+                    plt.text(xitem, yitem, str(t), color=textcolor)
+            is_plan = False
         plt.gca().set_xticks([x - 0.5 for x in plt.gca().get_xticks()][1:], minor='true')
         plt.gca().set_yticks([y - 0.5 for y in plt.gca().get_yticks()][1:], minor='true')
         plt.grid(which='minor')
@@ -103,7 +118,6 @@ class Planner(object):
             (1, 1): 3,
             (1, 0): 0
         }
-        # Always start in the top right so we can go counterclockwise
         path = [start_pos]
         while stack:
             current = stack.pop()
@@ -145,14 +159,19 @@ class Planner(object):
             previous = current
         return path
 
-    def _generate_spanning_tree_path(self, extended_occupancy_map, prefix):
+    def _generate_spanning_tree_path(self, extended_occupancy_map, prefix, dt=0.5):
         # Prefix should just be start pos for now
         if len(prefix) != 1:
             raise Exception("Todo")
         start_pos = prefix[-1]
         large_cells = self._largify_cells(extended_occupancy_map)
         tree = self._generate_spanning_tree(large_cells, start_pos)
-        return self._walk_tree(tree, start_pos)
+        path = self._walk_tree(tree, start_pos)
+        # Assumes the robot moves with constant velocity of 1 square/dt
+        plan = {}
+        for i in range(len(path)):
+            plan[dt*i] = path[i]
+        return plan
 
     def generate_plan(self, extended_occupancy_map, dynamic_objects, curr_plan):
         # Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
@@ -200,15 +219,15 @@ if __name__ == "__main__":
     start_pos = (0, 0)
 
     human = Human((0, 0), (0, 8), 1)
-    human_traj = human.get_traj(occ, dt=1)
-    print(human_traj)
+    human_traj = human.get_traj(occ, dt=10)
+    #print(human_traj)
 
     # Uncomment to generate random occupancy
-    # prob = 0.95
-    # occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
-    # occ[0][0] = 0
-    # occ = double_array(occ)
-    # start_pos = (0, 0)
+    #prob = 0.95
+    #occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
+    #occ[0][0] = 0
+    #occ = double_array(occ)
+    #start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
@@ -216,4 +235,4 @@ if __name__ == "__main__":
     #start_pos = (0, 2)
 
     plan = p._generate_spanning_tree_path(occ, [start_pos])
-    p.visualize_plan(occ, [], plan)
+    p.visualize_plan(occ, [Projectile((3, 3), (1, 0.5))], plan)

@@ -21,7 +21,7 @@ class Projectile(DynamicObject):
         curr_x, curr_y = self.start
         vel_x, vel_y = self.velocity
         while curr_x >=0 and curr_y >= 0 and curr_x < len(extended_occupancy_map[0]) \
-                                        and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[curr_y][curr_x]:
+                                        and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[int(curr_y)][int(curr_x)]:
             traj[t] = (curr_x, curr_y)
             t += dt
             curr_x += vel_x * dt
