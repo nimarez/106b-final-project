@@ -4,7 +4,8 @@ import numpy as np
 from collections import deque
 class DynamicObject(object):
     def __init__(self):
-        pass
+        # How far away (squared) from this object the robot must be
+        self.required_distancesq = 1
 
     def get_traj(self):
         # Return tuple of array of times, array of points
