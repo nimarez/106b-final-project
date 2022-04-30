@@ -18,6 +18,9 @@ class Planner(object):
         self.max_iters = 1000
         # Up left down right
         self.coords_to_check = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        # 1/Velocity -- how many squares per second does the robot move
+        self.dt = 0.5
+
 
     def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan, t_step=4):
         plt.matshow(extended_occupancy_map)
@@ -41,13 +44,6 @@ class Planner(object):
         plt.gca().set_yticks([y - 0.5 for y in plt.gca().get_yticks()][1:], minor='true')
         plt.grid(which='minor')
         plt.show()
-
-    def generate_occupancy_map(self, root_node):
-        # Takes in root node of the world
-        # Finds all cube like things and their bounding boxes
-        # Returns an int 2D array (1 or 0) corresponding to whether an object is in that location
-        # Discretizes with the grid size equal to the robot size
-        pass
 
     def _generate_spanning_tree(self, large_map, start_pos, previous_tree=None):
         """
@@ -241,7 +237,7 @@ class Planner(object):
             previous = current
         return path
 
-    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None, dt=0.5):
+    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None):
         """
         Generates a path (dict of time to position) through an occupancy map
         Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
@@ -257,15 +253,15 @@ class Planner(object):
         large_cells = self._largify_cells(extended_occupancy_map)
         tree = self._generate_spanning_tree(large_cells, start_pos, previous_tree_pruned)
         path = self._walk_tree(tree, start_pos)
-        # Assumes the robot moves with constant velocity of 1 square/dt
+        # Assumes the robot moves with constant velocity of 1 square/self.dt
         times = []
         points = []
         for i in range(len(path)):
-            times.append(dt*i)
+            times.append(self.dt*i)
             points.append(path[i])
         return times, points
 
-    def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, previous_tree=None, dt=0.5):
+    def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, previous_tree=None):
         """
         Calls generate_plan until one is found which doesn't intersect with the dynamic objects
         Additionally updates the occupancy map with the previously completed path
@@ -279,11 +275,11 @@ class Planner(object):
             _, complete, _, pruned_tree = self._prune_tree(previous_tree, current_pos)
             for point in complete:
                 new_occ[point] = 2
-        # NOTE: Assumes that the plan is generated in intervals of dt
+        # NOTE: Assumes that the plan is generated in intervals of self.dt
         # It should also be deterministic constant length
         dynamic_object_positions = None
         for i in range(self.max_iters):
-            times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree, dt)
+            times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree)
             if dynamic_object_positions is None:
                 # We only need to set this once
                 # Calculate where the dynamic objects are at each iteration of dt
