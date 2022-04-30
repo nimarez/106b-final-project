@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-from dynamic_objects import DynamicObject, Human, Projectile
+from dynamic_objects import DynamicObject, Human, Projectile, Custom
 
 
 class Planner(object):
@@ -279,6 +279,7 @@ class Planner(object):
         # It should also be deterministic constant length
         dynamic_object_positions = None
         for i in range(self.max_iters):
+            #print("Trying iteration", i)
             times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree)
             if dynamic_object_positions is None:
                 # We only need to set this once
@@ -287,7 +288,7 @@ class Planner(object):
                 # Have to set it here because we need to know how long the times array is
                 dynamic_object_positions = []
                 for obj in dynamic_objects:
-                    obj_times, obj_points = obj.get_trajectory()
+                    obj_times, obj_points = obj.get_traj(extended_occupancy_map)
                     aligned_trajectory = []
                     current_index = 0
                     for t_index in range(len(times)):
@@ -327,7 +328,7 @@ def double_array(arr):
     return result
 
 if __name__ == "__main__":
-    #random.seed(0.41783174376782783)
+    #random.seed(1)
     p = Planner(6)
 
     #occ = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
@@ -345,17 +346,20 @@ if __name__ == "__main__":
 
     projectile = Projectile((3, 3), (1, 0.5))
 
+    custom = Custom(([0, 1, 2], [(2, 1), (1, 1), (0, 1)]), 0.9)
+
     # Uncomment to generate random occupancy
-    prob = 0.95
-    occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
-    occ[0][0] = 0
-    occ = double_array(occ)
-    start_pos = (0, 0)
+    #prob = 0.95
+    #occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
+    #occ[0][0] = 0
+    #occ = double_array(occ)
+    #start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
     #occ = double_array(occ)
     #start_pos = (0, 2)
 
-    _, plan_times, plan_points = p.generate_compatible_plan(occ, [], start_pos)
-    p.visualize_plan(occ, [], (plan_times, plan_points), t_step=100000)
+    objects = [custom]
+    _, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
+    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)

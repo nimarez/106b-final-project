@@ -7,9 +7,18 @@ class DynamicObject(object):
         # How far away (squared) from this object the robot must be
         self.required_distancesq = 1
 
-    def get_traj(self):
+    def get_traj(self, extended_occupancy_map, dt=0.5):
         # Return tuple of array of times, array of points
         pass
+
+
+class Custom(DynamicObject):
+    def __init__(self, trajectory, dist):
+        self.trajectory = trajectory
+        self.required_distancesq = dist
+
+    def get_traj(self, extended_occupancy_map):
+        return self.trajectory
 
 
 class Projectile(DynamicObject):
