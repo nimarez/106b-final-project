@@ -11,7 +11,7 @@ i = 0
 
 # number of cells on row / column to divide world into
 # assumes: square world
-diff = 10
+diff = 20
 
 def generate_occupancy_map(root_node):
     # Takes in root node of the world
@@ -57,18 +57,22 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, diff):
         # only rectangles
         
     # start with top left corner
-    current_x = position[0] - size[0]
-    current_y = position[1] - size[1]
+    size_in_x = size[0]
+    size_in_y = size[1]
+    current_x = position[0] - size_in_x / 2
+    current_y = position[1] - size_in_y / 2
     
-    step_value = math.floor(map_size/diff)
     
-    while current_x < position[0] + size[0]:
-        while current_y < position[1] + size[1]:
+    step_value = map_size/diff
+    
+    while current_x < position[0] + size_in_x / 2:
+        while current_y < position[1] + size_in_y / 2:
             grid = get_grid_index_at_pos(current_x, current_y, map_size, diff)
+            print(grid)
             oc_map[grid[0]][grid[1]] = 1
             current_y += step_value
         current_x += step_value
-        current_y = position[1] - size[1]
+        current_y = position[1] - size_in_y / 2
     return
         
         

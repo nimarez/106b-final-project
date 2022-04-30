@@ -2,8 +2,8 @@
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.43857227494500733 -0.02397002615228679 0.8983762004282059 3.239721221473897
-  position 8.920494455191594 1.100611479939605 12.173206142708269
+  orientation -0.6796412558619226 0.0015450144977425906 0.7335430295903781 3.1382617205838903
+  position 3.2397493910101 0.07520199837964649 16.67173512314923
 }
 TexturedBackground {
 }
@@ -20,17 +20,32 @@ Robot {
 DEF WALLS Group {
   children [
     Solid {
-      translation -0.231235 -0.0116369 0.5
+      translation -2.22549 0.066495 0.5
       children [
         Shape {
           appearance DEF WALL_COLOR PBRAppearance {
             baseColor 0 1 0
           }
           geometry DEF WALL_GEOMETRY Box {
-            size 4 0.25 1
+            size 2 2 1
           }
         }
       ]
+      boundingObject USE WALL_GEOMETRY
+    }
+    Solid {
+      translation 1.90137 3.06194 0.5
+      children [
+        Shape {
+          appearance DEF WALL_COLOR PBRAppearance {
+            baseColor 0 1 0
+          }
+          geometry DEF WALL_GEOMETRY Box {
+            size 2 2 1
+          }
+        }
+      ]
+      name "solid(3)"
       boundingObject USE WALL_GEOMETRY
     }
     Solid {
