@@ -34,18 +34,15 @@ class CCPPController(Supervisor):
         self.E = 0   # Cummulative error
         self.old_e = 0  # Previous error
         
-        self.Kp = 1
+        self.Kp = 1.3
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.turningV = 0
-        self.straightV = 5
+        self.straightV = 4
         self.desiredV = 3
-        self.maxV = 6.67
+        self.turningV = 0
         
-        self.arrive_distance = 0.0001
-        
-        self.positions = [(0, 0),(1, 0),(0, 1)]
+        self.arrive_distance = 0.001
         
         root_node = self.getRoot()
         
@@ -131,8 +128,6 @@ class CCPPController(Supervisor):
         d_y = goal[1] - self.robot.getField('translation').getSFVec3f()[1]
         
         if self.is_arrived(d_x,d_y):
-            if len(self.positions) != 1:
-                self.positions.pop(0)
             return 0,0
 
         # Angle from robot to goal
@@ -142,7 +137,6 @@ class CCPPController(Supervisor):
         alpha = g_theta - self.robot.getField('rotation').getSFRotation()[3]
         #alpha = g_theta - math.radians(90)
         e = np.arctan2(np.sin(alpha), np.cos(alpha))
-        
         e_P = e
         e_I = self.E + e
         e_D = e - self.old_e
@@ -152,22 +146,13 @@ class CCPPController(Supervisor):
         # The value of v can be specified by giving in parameter or
         # using the pre-defined value defined above.
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
-
         w = np.arctan2(np.sin(w), np.cos(w))
-        print(w)
         
-        #if w > 0.3:
-        #    v = self.turningV
-        #else:
-        #    v = self.straightV
-        v = self.desiredV
+        if w > 0.2:
+            v = self.turningV
+        else:
+            v = self.straightV
         
-        #if abs(v-w) > self.maxV:
-        #    return (v-w)/((v-w)/self.maxV + 0.1), (v+w)/((v-w)/self.maxV + 0.1)
-        #elif abs(v+w) > self.maxV:
-        #    return (v-w)/((v+w)/self.maxV + 0.1), (v+w)/((v+w)/self.maxV + 0.1)
-        
-        print(v-w, v+w)
         return v-w, v+w
         
     def is_arrived(self, dx, dy):
@@ -186,7 +171,7 @@ class CCPPController(Supervisor):
         while self.step(self.timeStep) != -1:
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
-                left_speed, right_speed = self.control_step(self.positions[0])
+                left_speed, right_speed = self.control_step([0,0])
                 
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
