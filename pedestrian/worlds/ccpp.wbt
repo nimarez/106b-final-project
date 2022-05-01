@@ -3,38 +3,39 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.47163079720101875 0.04364338246571698 0.8807154173162195 2.978960262271293
-  position 10.966839527254049 -0.13138027478680803 15.429841922184222
+  position 7.938258009299921 0.4339438342018336 10.803438801460409
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 DEF ARENA RectangleArena {
-  floorSize 10 10
+  floorSize 5 5
+  wallHeight 1
 }
 DEF STATIC Group {
   children [
     Solid {
-      translation 1.91476 -3.18316 -5.32907e-15
+      translation 1.18732 -1.34882 -3.55271e-15
       children [
         DEF WALL_SHAPE Shape {
           appearance PBRAppearance {
           }
           geometry Box {
-            size 2 2 1
+            size 1 1 1
           }
         }
       ]
       boundingObject USE WALL_SHAPE
     }
     Solid {
-      translation 1.70273 2.48435 0
+      translation 0.0386516 1.44331 2.39808e-13
       children [
         DEF WALL_SHAPE Shape {
           appearance PBRAppearance {
           }
           geometry Box {
-            size 5 0.6 1
+            size 3 0.6 1
           }
         }
       ]
@@ -42,13 +43,13 @@ DEF STATIC Group {
       boundingObject USE WALL_SHAPE
     }
     Solid {
-      translation -2.27042 -2.03009 0
+      translation -1.39267 -0.789973 5.32907e-15
       children [
         DEF WALL_SHAPE Shape {
           appearance PBRAppearance {
           }
           geometry Box {
-            size 0.1 5 1
+            size 0.1 2 1
           }
         }
       ]
@@ -58,7 +59,7 @@ DEF STATIC Group {
   ]
 }
 DEF TURTLEBOT TurtleBot3Burger {
-  translation 3.92679 -1.47046 1.77636e-15
+  translation 0.928296 -0.0516047 7.9936e-14
   rotation 0 0 1 0.785398
   controller "ccpp"
   supervisor TRUE

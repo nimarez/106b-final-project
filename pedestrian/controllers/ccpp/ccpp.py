@@ -38,12 +38,14 @@ class CCPPController(Supervisor):
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.desiredV = 4
+        self.turningV = 0
+        self.straightV = 5
+        self.desiredV = 3
         self.maxV = 6.67
         
-        self.arrive_distance = 0.001
+        self.arrive_distance = 0.0001
         
-        self.positions = [[0,0], [-1.6, -2.4], [0.23, -4.5], [0.28, 0.25]]
+        self.positions = [(0, 0),(1, 0),(0, 1)]
         
         root_node = self.getRoot()
         
@@ -152,14 +154,20 @@ class CCPPController(Supervisor):
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
 
         w = np.arctan2(np.sin(w), np.cos(w))
-        #print(w)
+        print(w)
         
+        #if w > 0.3:
+        #    v = self.turningV
+        #else:
+        #    v = self.straightV
         v = self.desiredV
         
-        if abs(v-w) > self.maxV:
-            return (v-w)/((v-w)/self.maxV + 0.1), (v+w)/((v-w)/self.maxV + 0.1)
-        elif abs(v+w) > self.maxV:
-            return (v-w)/((v+w)/self.maxV + 0.1), (v+w)/((v+w)/self.maxV + 0.1)
+        #if abs(v-w) > self.maxV:
+        #    return (v-w)/((v-w)/self.maxV + 0.1), (v+w)/((v-w)/self.maxV + 0.1)
+        #elif abs(v+w) > self.maxV:
+        #    return (v-w)/((v+w)/self.maxV + 0.1), (v+w)/((v+w)/self.maxV + 0.1)
+        
+        print(v-w, v+w)
         return v-w, v+w
         
     def is_arrived(self, dx, dy):
