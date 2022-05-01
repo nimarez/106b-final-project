@@ -40,7 +40,7 @@ class CCPPController(Supervisor):
         
         self.desiredV = 4
         
-        self.arrive_distance = 0.05
+        self.arrive_distance = 0.001
         
         root_node = self.getRoot()
         
@@ -169,7 +169,7 @@ class CCPPController(Supervisor):
         while self.step(self.timeStep) != -1:
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
-                left_speed, right_speed = self.control_step([0,0])
+                left_speed, right_speed = self.control_step([-0.717,-1.84])
                 
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
