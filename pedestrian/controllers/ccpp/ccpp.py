@@ -39,8 +39,11 @@ class CCPPController(Supervisor):
         self.Kd = 0.01
         
         self.desiredV = 4
+        self.maxV = 6.67
         
         self.arrive_distance = 0.001
+        
+        self.positions = [[0,0], [-1.6, -2.4], [0.23, -4.5], [0.28, 0.25]]
         
         root_node = self.getRoot()
         
@@ -126,6 +129,8 @@ class CCPPController(Supervisor):
         d_y = goal[1] - self.robot.getField('translation').getSFVec3f()[1]
         
         if self.is_arrived(d_x,d_y):
+            if len(self.positions) != 1:
+                self.positions.pop(0)
             return 0,0
 
         # Angle from robot to goal
@@ -151,6 +156,10 @@ class CCPPController(Supervisor):
         
         v = self.desiredV
         
+        if abs(v-w) > self.maxV:
+            return (v-w)/((v-w)/self.maxV + 0.1), (v+w)/((v-w)/self.maxV + 0.1)
+        elif abs(v+w) > self.maxV:
+            return (v-w)/((v+w)/self.maxV + 0.1), (v+w)/((v+w)/self.maxV + 0.1)
         return v-w, v+w
         
     def is_arrived(self, dx, dy):
@@ -169,7 +178,7 @@ class CCPPController(Supervisor):
         while self.step(self.timeStep) != -1:
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
-                left_speed, right_speed = self.control_step([0,0])
+                left_speed, right_speed = self.control_step(self.positions[0])
                 
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
