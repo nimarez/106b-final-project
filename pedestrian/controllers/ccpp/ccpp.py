@@ -30,6 +30,18 @@ class CCPPController(Supervisor):
         # assumes: square world
         self.diff = 20
         
+        # Control numbers
+        self.E = 0   # Cummulative error
+        self.old_e = 0  # Previous error
+        
+        self.Kp = 1
+        self.Ki = 0.01
+        self.Kd = 0.01
+        
+        self.desiredV = 4
+        
+        self.arrive_distance = 0.05
+        
         root_node = self.getRoot()
         
         #Box = namedtuple('Box', ['translation', 'rotation', 'size'])
@@ -77,7 +89,7 @@ class CCPPController(Supervisor):
             
             self.add_rectangle_to_occupancy(size, position, oc_map, 10, self.diff)
             
-        print(oc_map)
+        #print(oc_map)
     
     
     def add_rectangle_to_occupancy(self, size, position, oc_map, map_size, diff):
@@ -106,6 +118,50 @@ class CCPPController(Supervisor):
     def get_grid_index_at_pos(self, x, y, map_size, diff):
         return (math.floor(((x + map_size / 2)/map_size)*diff), math.floor(((y + map_size / 2)/map_size)*diff))
     
+    def control_step(self, goal):
+        #inspired by: https://github.com/BurakDmb/DifferentialDrivePathTracking/blob/master/main.py
+        
+        # Difference in x and y
+        d_x = goal[0] - self.robot.getField('translation').getSFVec3f()[0]
+        d_y = goal[1] - self.robot.getField('translation').getSFVec3f()[1]
+        
+        if self.is_arrived(d_x,d_y):
+            return 0,0
+
+        # Angle from robot to goal
+        g_theta = np.arctan2(d_y, d_x)
+        
+        # Error between the goal angle and robot angle
+        alpha = g_theta - self.robot.getField('rotation').getSFRotation()[3]
+        #alpha = g_theta - math.radians(90)
+        e = np.arctan2(np.sin(alpha), np.cos(alpha))
+        
+        e_P = e
+        e_I = self.E + e
+        e_D = e - self.old_e
+        
+        # This PID controller only calculates the angular
+        # velocity with constant speed of v
+        # The value of v can be specified by giving in parameter or
+        # using the pre-defined value defined above.
+        w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
+
+        w = np.arctan2(np.sin(w), np.cos(w))
+        #print(w)
+        
+        v = self.desiredV
+        
+        return v-w, v+w
+        
+    def is_arrived(self, dx, dy):
+        difference = np.array([dx, dy])
+
+        distance_err = difference @ difference.T
+        if distance_err < self.arrive_distance:
+            return True
+        else:
+            return False
+        
     def run(self):
         global CURRENT_TIME
         # main control loop: perform simulation steps of 32 milliseconds
@@ -113,10 +169,10 @@ class CCPPController(Supervisor):
         while self.step(self.timeStep) != -1:
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
-                position = self.robot.getPosition()
-                if (4.95 < position[0] ** 2 + position[1] ** 2 < 5.05):
-                    self.left_motor.setVelocity(-self.left_motor.getVelocity())
-                    self.right_motor.setVelocity(-self.right_motor.getVelocity())
+                left_speed, right_speed = self.control_step([0,0])
+                
+                self.left_motor.setVelocity(left_speed)
+                self.right_motor.setVelocity(right_speed)
     
             pass
 
