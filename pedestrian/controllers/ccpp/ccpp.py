@@ -34,15 +34,17 @@ class CCPPController(Supervisor):
         self.E = 0   # Cummulative error
         self.old_e = 0  # Previous error
         
-        self.Kp = 1.3
+        self.Kp = 1
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.straightV = 4
-        self.desiredV = 3
+        self.straightV = 2
+        #self.desiredV = 3
         self.turningV = 0
         
-        self.arrive_distance = 0.001
+        self.arrive_distance = 0.01
+        
+        self.goal_positions = [[0,0], [1,0], [0,0], [1,0]]
         
         root_node = self.getRoot()
         
@@ -123,20 +125,32 @@ class CCPPController(Supervisor):
     def control_step(self, goal):
         #inspired by: https://github.com/BurakDmb/DifferentialDrivePathTracking/blob/master/main.py
         
+        print("------")
         # Difference in x and y
         d_x = goal[0] - self.robot.getField('translation').getSFVec3f()[0]
+        print("dx: ", d_x)
         d_y = goal[1] - self.robot.getField('translation').getSFVec3f()[1]
+        print("dy: ", d_y)
         
         if self.is_arrived(d_x,d_y):
+            if len(self.goal_positions) > 1:
+                self.goal_positions.pop(0)
+            print("arrived")
             return 0,0
 
         # Angle from robot to goal
         g_theta = np.arctan2(d_y, d_x)
+        print("theta: ", g_theta)
         
         # Error between the goal angle and robot angle
         alpha = g_theta - self.robot.getField('rotation').getSFRotation()[3]
         #alpha = g_theta - math.radians(90)
+        print("alpha: ", alpha)
+        print("sin: ", np.sin(alpha))
+        print("cos: ", np.cos(alpha))
         e = np.arctan2(np.sin(alpha), np.cos(alpha))
+        print("e: ", e)
+        #print(e)
         e_P = e
         e_I = self.E + e
         e_D = e - self.old_e
@@ -147,11 +161,13 @@ class CCPPController(Supervisor):
         # using the pre-defined value defined above.
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
         w = np.arctan2(np.sin(w), np.cos(w))
-        
-        if w > 0.2:
+        print("w: ", w)
+        if abs(w) > 0.2:
             v = self.turningV
+            #print("turning")
         else:
             v = self.straightV
+            #print("straight")
         
         return v-w, v+w
         
@@ -171,7 +187,7 @@ class CCPPController(Supervisor):
         while self.step(self.timeStep) != -1:
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
-                left_speed, right_speed = self.control_step([0,0])
+                left_speed, right_speed = self.control_step(self.goal_positions[0])
                 
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)

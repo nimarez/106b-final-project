@@ -2,8 +2,8 @@
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.3781469834244977 0.08125176859685705 0.9221729821605249 2.7503763073804426
-  position 8.89384484880623 -2.893859325433887 9.392761377539514
+  orientation -0.22973667667849162 0.13979684768413728 0.9631603712603112 2.0813447366886493
+  position 3.27460362705715 -2.543499731358416 2.871757377429928
 }
 TexturedBackground {
 }
@@ -59,19 +59,13 @@ DEF STATIC Group {
   ]
 }
 DEF TURTLEBOT TurtleBot3Burger {
-  translation 0.928296 -0.0516047 7.9936e-14
-  rotation 0 0 1 0.785398
+  hidden rotation_2 0.5773835996598717 -0.5772836025002505 -0.5773835996355816 2.0944000000242817
+  translation 1.49271 -0.225877 4.44089e-16
+  rotation 0 0 1 2.61799
   controller "ccpp"
   supervisor TRUE
   extensionSlot [
     Kinect {
     }
-  ]
-}
-Pedestrian {
-  translation -0.096804 -1.36517 1.27
-  rotation 0 0 1 1.0472
-  controllerArgs [
-    "trajectory [1 0, 0 1]"
   ]
 }
