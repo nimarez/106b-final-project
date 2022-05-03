@@ -1,6 +1,8 @@
 from controller import Robot, Camera, Motor, Node, Supervisor
 from occupancy_map import generate_occupancy_map
 from planner import Planner
+from utils import get_pos_at_grid_index
+import logging
 
 import numpy as np
 import math
@@ -29,11 +31,22 @@ class CCPPController(Supervisor):
         # assumes: square world
         self.dim = 20
 
-        self.oc_map = generate_occupancy_map(self.dim, self.getSelf())
+        # get map_size
+        self.map_size = self.getFromDef("ARENA").getField('floorSize').getSFVec2f()[0]
+
+        self.safe_map_size = self.map_size - 0.4
+
+        self.oc_map = generate_occupancy_map(self.safe_map_size, self.dim, self)
+
+        self.planner = Planner(self.dim)
+
+        new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
+
+        way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
 
         print(self.oc_map)
 
-        self.planner = Planner(self.oc_map)
+        # self.planner.visualize_plan(new_occ, [], (times, way_indices))
 
         # ------------ CONTROLLER PARMS BEGIN -------------------#
         
@@ -53,7 +66,8 @@ class CCPPController(Supervisor):
 
         # ------------ CONTROLLER PARMS END -------------------#
         
-        self.goal_positions = [[0,0], [1,0], [0,0], [1,0]]
+        # self.goal_positions = [[0,0], [1,0], [0,0], [1,0]]
+        self.goal_positions = way_points
         
         if self.getSupervisor():
             self.robot = self.getSelf()
@@ -61,31 +75,31 @@ class CCPPController(Supervisor):
     def control_step(self, goal):
         #inspired by: https://github.com/BurakDmb/DifferentialDrivePathTracking/blob/master/main.py
         
-        print("------")
+        # print("------")
         # Difference in x and y
         d_x = goal[0] - self.robot.getField('translation').getSFVec3f()[0]
-        print("dx: ", d_x)
+        # print("dx: ", d_x)
         d_y = goal[1] - self.robot.getField('translation').getSFVec3f()[1]
-        print("dy: ", d_y)
+        # print("dy: ", d_y)
         
         if self.is_arrived(d_x,d_y):
             if len(self.goal_positions) > 1:
                 self.goal_positions.pop(0)
-            print("arrived")
+            # print("arrived")
             return 0,0
 
         # Angle from robot to goal
         g_theta = np.arctan2(d_y, d_x)
-        print("theta: ", g_theta)
+        # print("theta: ", g_theta)
         
         # Error between the goal angle and robot angle
         alpha = g_theta - self.robot.getField('rotation').getSFRotation()[3]
         #alpha = g_theta - math.radians(90)
-        print("alpha: ", alpha)
-        print("sin: ", np.sin(alpha))
-        print("cos: ", np.cos(alpha))
+        # print("alpha: ", alpha)
+        # print("sin: ", np.sin(alpha))
+        # print("cos: ", np.cos(alpha))
         e = np.arctan2(np.sin(alpha), np.cos(alpha))
-        print("e: ", e)
+        # print("e: ", e)
         #print(e)
         e_P = e
         e_I = self.E + e
@@ -100,11 +114,11 @@ class CCPPController(Supervisor):
         # velocity with constant speed of v
         # The value of v can be specified by giving in parameter or
         # using the pre-defined value defined above.
-        print("integral term: ", e_I)
-        print("derrivative term: ", e_D)
+        # print("integral term: ", e_I)
+        # print("derrivative term: ", e_D)
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
-        w = np.arctan2(np.sin(w), np.cos(w))
-        print("w: ", w)
+        w = round(np.arctan2(np.sin(w), np.cos(w)), 3)
+        # print("w: ", w)
         if abs(w) > 0.2:
             v = self.turningV
             #print("turning")
@@ -132,8 +146,11 @@ class CCPPController(Supervisor):
             if self.getSupervisor():
                 left_speed, right_speed = self.control_step(self.goal_positions[0])
                 
+                print(self.getFromDef("TURTLEBOT").getField("translation").getSFVec3f())
+                
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
+                
     
             pass
 
