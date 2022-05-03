@@ -38,7 +38,7 @@ class CCPPController(Supervisor):
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.straightV = 2
+        self.straightV = 3
         #self.desiredV = 3
         self.turningV = 0
         
@@ -153,12 +153,19 @@ class CCPPController(Supervisor):
         #print(e)
         e_P = e
         e_I = self.E + e
+        while (abs(e_I) > 2*math.pi):
+            e_I = np.sign(e_I)*(abs(e_I)-2*math.pi)
+        self.E = e_I
+        # TO DO: if self.E is greater than 2*pi, set it to 0 + difference. (Same thing for negative)
         e_D = e - self.old_e
+        self.old_e = e
         
         # This PID controller only calculates the angular
         # velocity with constant speed of v
         # The value of v can be specified by giving in parameter or
         # using the pre-defined value defined above.
+        print("integral term: ", e_I)
+        print("derrivative term: ", e_D)
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
         w = np.arctan2(np.sin(w), np.cos(w))
         print("w: ", w)
