@@ -1,17 +1,17 @@
 import numpy as np
 import math
 
-def generate_occupancy_map(self, root_node):
+def generate_occupancy_map(self, dim, supervisor_node):
     # Takes in root node of the world
     # Finds all cube like things and their bounding boxes
     # Returns an int 2D array (1 or 0) corresponding to whether an object is in that location
     # Discretizes with the grid size equal to the robot size
     
     # empty occupancy map (0 = free, 1 = occupied)
-    oc_map = np.zeros(shape=(self.diff,self.diff))
+    oc_map = np.zeros(shape=(dim,dim))
     
     # get the group containing all walls
-    group_node = self.getFromDef("STATIC")
+    group_node = supervisor_node.getFromDef("STATIC")
     # get the field of the group containg the children (=wall) nodes
     children_field = group_node.getField('children')
     # how many children does it have?
@@ -23,10 +23,10 @@ def generate_occupancy_map(self, root_node):
         position = wall.getPosition()
         size = wall.getField('children').getMFNode(0).getField('geometry').getSFNode().getField('size').getSFVec3f()
         
-        self.add_rectangle_to_occupancy(size, position, oc_map, 10, self.diff)
+        add_rectangle_to_occupancy(size, position, oc_map, 10, dim)
     return oc_map
 
-def add_rectangle_to_occupancy(self, size, position, oc_map, map_size, diff):
+def add_rectangle_to_occupancy(self, size, position, oc_map, map_size, dim):
     # for now assume:
         # retangles are not rotated other than 90 degrees
         # only rectangles
@@ -38,16 +38,16 @@ def add_rectangle_to_occupancy(self, size, position, oc_map, map_size, diff):
     current_y = position[1] - size_in_y / 2
     
     
-    step_value = map_size/diff
+    step_value = map_size/dim
     
     while current_x < position[0] + size_in_x / 2:
         while current_y < position[1] + size_in_y / 2:
-            grid = self.get_grid_index_at_pos(current_x, current_y, map_size, diff)
+            grid = self.get_grid_index_at_pos(current_x, current_y, map_size, dim)
             oc_map[grid[0]][grid[1]] = 1
             current_y += step_value
         current_x += step_value
         current_y = position[1] - size_in_y / 2
     return
 
-def get_grid_index_at_pos(self, x, y, map_size, diff):
-        return (math.floor(((x + map_size / 2)/map_size)*diff), math.floor(((y + map_size / 2)/map_size)*diff))
+def get_grid_index_at_pos(self, x, y, map_size, dim):
+        return (math.floor(((x + map_size / 2)/map_size)*dim), math.floor(((y + map_size / 2)/map_size)*dim))

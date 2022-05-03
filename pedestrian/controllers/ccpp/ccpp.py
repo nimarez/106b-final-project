@@ -1,5 +1,6 @@
 from controller import Robot, Camera, Motor, Node, Supervisor
 from occupancy_map import generate_occupancy_map
+from planner import Planner
 
 import numpy as np
 import math
@@ -24,12 +25,17 @@ class CCPPController(Supervisor):
         self.left_motor = self.getDevice("left wheel motor")
         self.left_motor.setPosition(float('inf'))
 
-        self.oc_map = self.generate_occupancy_map(root_node)
-
-        # ------------ CONTROLLER PARMS BEGIN -------------------#
         # number of cells on row / column to divide world into
         # assumes: square world
-        self.diff = 20
+        self.dim = 20
+
+        self.oc_map = generate_occupancy_map(self.dim, self.getSelf())
+
+        print(self.oc_map)
+
+        self.planner = Planner(self.oc_map)
+
+        # ------------ CONTROLLER PARMS BEGIN -------------------#
         
         # Control numbers
         self.E = 0   # Cummulative error
@@ -48,8 +54,6 @@ class CCPPController(Supervisor):
         # ------------ CONTROLLER PARMS END -------------------#
         
         self.goal_positions = [[0,0], [1,0], [0,0], [1,0]]
-        
-        root_node = self.getRoot()
         
         if self.getSupervisor():
             self.robot = self.getSelf()
