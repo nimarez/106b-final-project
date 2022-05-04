@@ -1,7 +1,7 @@
 from controller import Robot, Camera, Motor, Node, Supervisor
 from occupancy_map import generate_occupancy_map
 from planner import Planner
-from utils import get_pos_at_grid_index
+from utils import get_pos_at_grid_index, get_grid_index_at_pos
 import logging
 
 import numpy as np
@@ -45,7 +45,7 @@ class CCPPController(Supervisor):
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
 
         print(self.oc_map)
-
+                
         # self.planner.visualize_plan(new_occ, [], (times, way_indices))
 
         # ------------ CONTROLLER PARMS BEGIN -------------------#
@@ -145,14 +145,10 @@ class CCPPController(Supervisor):
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
                 left_speed, right_speed = self.control_step(self.goal_positions[0])
-                
-                print(self.getFromDef("TURTLEBOT").getField("translation").getSFVec3f())
-                
+                                
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
                 
-    
-            pass
 
 # main Python program
 controller = CCPPController()

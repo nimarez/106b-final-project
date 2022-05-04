@@ -44,7 +44,7 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, dim):
     while current_x < position[0] + size_in_x / 2:
         while current_y < position[1] + size_in_y / 2:
             grid = get_grid_index_at_pos(current_x, current_y, map_size, dim)
-            oc_map[grid[0]][grid[1]] = 1
+            oc_map[grid[1]][grid[0]] = 1
             current_y += step_value
         current_x += step_value
         current_y = position[1] - size_in_y / 2

@@ -2,10 +2,10 @@
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944
-  position 0.012225331413618796 1.9368805434695635e-05 9.299459560179328
+  orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
+  position 0.01220596266295404 4.335599689238277e-16 8.043917497488085
   follow "TurtleBot3Burger:Kinect"
-  followType "Mounted Shot"
+  followType "None"
 }
 TexturedBackground {
 }
@@ -28,27 +28,27 @@ DEF STATIC Group {
           }
         }
       ]
+      name "solid(1)"
       boundingObject USE WALL_SHAPE
     }
     Solid {
-      translation -1.39267 -0.789973 5.32907e-15
+      translation -1.29268 1.04118 -3.55271e-15
       children [
         DEF WALL_SHAPE Shape {
           appearance PBRAppearance {
           }
           geometry Box {
-            size 0.1 2 1
+            size 1 1 1
           }
         }
       ]
-      name "solid(1)"
       boundingObject USE WALL_SHAPE
     }
   ]
 }
 DEF TURTLEBOT TurtleBot3Burger {
-  translation -2.3 -2.3 0
-  rotation 0.0060074263422345755 -0.005960338140008268 0.9999641919578917 1.5787178307724294
+  translation -2.3 2.3 0
+  rotation 0 0 1 0
   controller "ccpp"
   supervisor TRUE
   extensionSlot [
