@@ -1,5 +1,6 @@
 from controller import Robot, Camera, Motor, Node, Supervisor
 from occupancy_map import generate_occupancy_map
+from dynamic_objects import Projectile, Human
 from planner import Planner
 from utils import get_pos_at_grid_index, get_grid_index_at_pos
 import logging
@@ -26,26 +27,44 @@ class CCPPController(Supervisor):
         # left motor
         self.left_motor = self.getDevice("left wheel motor")
         self.left_motor.setPosition(float('inf'))
-
+        
+        
         # number of cells on row / column to divide world into
         # assumes: square world
-        self.dim = 20
-
+        self.dim = 10
+        
         # get map_size
         self.map_size = self.getFromDef("ARENA").getField('floorSize').getSFVec2f()[0]
 
-        self.safe_map_size = self.map_size - 0.4
-
+        self.safe_map_size = self.map_size - 0.3
+        
         self.oc_map = generate_occupancy_map(self.safe_map_size, self.dim, self)
+        
+        # ------------ HUMAN PARMS BEGIN -----------------#
+        human_start = (0, 9)
+        human_goal = (9, 0)
+        speed = 1
+        
+        human = Human(human_start, human_goal, speed)
+        times, human_way_indices = human.get_traj(self.oc_map)
+        
+        human_way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in human_way_indices]
+        
+        cyclical_path = human_way_points + list(reversed(human_way_points))[1:]
+        
+        s = ",".join([f"{x} {y}" for x, y in cyclical_path])
+        arg = f"--trajectory={s}"
+        print(arg)
+        self.getFromDef("HUMAN").getField('controllerArgs').setMFString(0, arg)
+        
+        # ------------ HUMAN PARMS END -------------------#
 
         self.planner = Planner(self.dim)
 
         new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
 
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
-
-        self.planner.visualize_plan(new_occ, [], (times, way_indices))
- 
+        
         # ------------ CONTROLLER PARMS BEGIN -------------------#
         
         # Control numbers
@@ -65,7 +84,7 @@ class CCPPController(Supervisor):
         # ------------ CONTROLLER PARMS END -------------------#
         
         # self.start_pos = way_points[0]
-        self.goal_positions = way_points[1:]
+        self.goal_positions = way_points
         # self.goal_positions = [[0,0], [1,0], [0,0],[1,0], [0, 0], [1,0]]
         
         if self.getSupervisor():

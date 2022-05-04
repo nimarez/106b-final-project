@@ -2,10 +2,10 @@
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
-  position -2.309102492529612 2.306619116855097 0.8073340161005094
+  orientation -0.5782523138888345 0.5782922276622382 0.575501833974189 2.0970847590927617
+  position 0.4780160825945181 0.3603975011675702 8.696277014867853
   follow "TurtleBot3Burger:Kinect"
-  followType "Mounted Shot"
+  followType "None"
 }
 TexturedBackground {
 }
@@ -18,7 +18,7 @@ DEF ARENA RectangleArena {
 DEF STATIC Group {
   children [
     Solid {
-      translation 1.18732 -1.34882 -3.55271e-15
+      translation -0.03268 0.05118 -3.55271e-15
       children [
         DEF WALL_SHAPE Shape {
           appearance PBRAppearance {
@@ -28,40 +28,22 @@ DEF STATIC Group {
           }
         }
       ]
-      name "solid(1)"
-      boundingObject USE WALL_SHAPE
-    }
-    Solid {
-      translation -1.29268 1.04118 -3.55271e-15
-      children [
-        DEF WALL_SHAPE Shape {
-          appearance PBRAppearance {
-          }
-          geometry Box {
-            size 1 2 1
-          }
-        }
-      ]
       boundingObject USE WALL_SHAPE
     }
   ]
 }
 DEF TURTLEBOT TurtleBot3Burger {
-  hidden position_0_0 126.01186186500449
-  hidden position_0_1 125.59386680657843
-  hidden position_0_2 -27.360070941727543
-  hidden position2_0_2 13.198972214180973
-  hidden position3_0_2 -0.43371245412189263
-  hidden position_1_0 -1.1097913976713863e-12
-  hidden rotation_5 0 -1 0 1.222640278587237
-  hidden rotation_6 -0.681986722754306 -8.123439494041609e-08 -0.7313645534115217 3.141588002836965
-  hidden rotation_7 -0.9204562615951781 -0.052743127055895435 -0.3872704907924107 2.4273019824639026
-  translation -2.3 2.3 0
-  rotation 0 0 1 -1.57
+  translation -1.1 1.1 0
+  rotation -0.0049153592439532745 -0.004919909020501267 -0.9999758165769475 1.5697154706452283
   controller "ccpp"
   supervisor TRUE
   extensionSlot [
     Kinect {
     }
+  ]
+}
+Pedestrian {
+  controllerArgs [
+    "--trajectory=0.8 -0.7, 0.2 -0.7"
   ]
 }
