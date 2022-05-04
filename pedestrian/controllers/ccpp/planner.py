@@ -237,7 +237,7 @@ class Planner(object):
             previous = current
         return path
 
-    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None):
+    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None, current_time=None):
         """
         Generates a path (dict of time to position) through an occupancy map
         Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
@@ -256,12 +256,14 @@ class Planner(object):
         # Assumes the robot moves with constant velocity of 1 square/self.dt
         times = []
         points = []
+        if current_time is None:
+            current_time = 0
         for i in range(len(path)):
-            times.append(self.dt*i)
+            times.append(current_time + self.dt*i)
             points.append(path[i])
         return times, points
 
-    def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, previous_tree=None):
+    def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, current_time=None, previous_tree=None):
         """
         Calls generate_plan until one is found which doesn't intersect with the dynamic objects
         Additionally updates the occupancy map with the previously completed path
@@ -280,7 +282,7 @@ class Planner(object):
         dynamic_object_positions = None
         for i in range(self.max_iters):
             #print("Trying iteration", i)
-            times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree)
+            times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree, current_time)
             if dynamic_object_positions is None:
                 # We only need to set this once
                 # Calculate where the dynamic objects are at each iteration of dt
@@ -295,7 +297,11 @@ class Planner(object):
                         # Finds the position at the earliest time latest or equal to the current
                         while obj_times[current_index] < times[t_index] and current_index < len(obj_times) - 1:
                             current_index += 1
-                        aligned_trajectory.append(obj_points[current_index])
+                        if current_index < len(obj_times) - 1:
+                            aligned_trajectory.append(obj_points[current_index])
+                        else:
+                            # We assume the object disappears after its trajectory is done
+                            aligned_trajectory.append(None)
                     dynamic_object_positions.append(aligned_trajectory)
             # Loop through all objects and all times, check if they come too close
             # If any are too close, fail and recreate path from before
@@ -303,6 +309,9 @@ class Planner(object):
             for t_index in range(len(times)):
                 current_pos = points[t_index]
                 for obj_i, obj_trajectory in enumerate(dynamic_object_positions):
+                    if obj_trajectory[t_index] is None:
+                        # If object is gone, continue
+                        continue
                     distsq = (obj_trajectory[t_index][0] - current_pos[0])**2 + (obj_trajectory[t_index][1] - current_pos[1])**2
                     if distsq <= dynamic_objects[obj_i].required_distancesq:
                         fail = True
@@ -349,17 +358,17 @@ if __name__ == "__main__":
     custom = Custom(([0, 1, 2], [(2, 1), (1, 1), (0, 1)]), 0.9)
 
     # Uncomment to generate random occupancy
-    prob = 0.85
-    occ = np.random.choice([0, 1], size=(20, 20), p=[prob, 1 - prob])
-    occ[0][0] = 0
-    occ = double_array(occ)
-    start_pos = (0, 0)
+    #prob = 0.85
+    #occ = np.random.choice([0, 1], size=(20, 20), p=[prob, 1 - prob])
+    #occ[0][0] = 0
+    #occ = double_array(occ)
+    #start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
     #occ = double_array(occ)
     #start_pos = (0, 2)
 
-    objects = []
+    objects = [custom]
     _, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
-    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=0)
+    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
