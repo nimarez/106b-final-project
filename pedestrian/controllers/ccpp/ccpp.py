@@ -43,8 +43,8 @@ class CCPPController(Supervisor):
         new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
 
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
-        
-        print(way_points[1:])
+
+        self.planner.visualize_plan(new_occ, [], (times, way_indices))
  
         # ------------ CONTROLLER PARMS BEGIN -------------------#
         
@@ -64,8 +64,9 @@ class CCPPController(Supervisor):
 
         # ------------ CONTROLLER PARMS END -------------------#
         
-        self.start_pos = way_points[0]
+        # self.start_pos = way_points[0]
         self.goal_positions = way_points[1:]
+        # self.goal_positions = [[0,0], [1,0], [0,0],[1,0], [0, 0], [1,0]]
         
         if self.getSupervisor():
             self.robot = self.getSelf()
@@ -75,9 +76,9 @@ class CCPPController(Supervisor):
         
         print("------")
         # Difference in x and y
-        d_x = round(goal[0] - self.robot.getField('translation').getSFVec3f()[0], 5)
+        d_x = round(goal[0] - self.robot.getField('translation').getSFVec3f()[0], 4)
         print("dx: ", d_x)
-        d_y = round(goal[1] - self.robot.getField('translation').getSFVec3f()[1], 5)
+        d_y = round(goal[1] - self.robot.getField('translation').getSFVec3f()[1], 4)
         print("dy: ", d_y)
         
         if self.is_arrived(d_x,d_y):
@@ -120,7 +121,7 @@ class CCPPController(Supervisor):
         # print("integral term: ", e_I)
         # print("derrivative term: ", e_D)
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
-        w = round(np.arctan2(np.sin(w), np.cos(w)), 3)
+        w = np.arctan2(np.sin(w), np.cos(w))
         # print("w: ", w)
         if abs(w) > 0.2:
             v = self.turningV
