@@ -11,7 +11,9 @@ class Planner(object):
 
     Extended occupancy map: 2d matrix of integers, 0=unoccupied, 1=obstacle, 2=already completed
     """
-    def __init__(self, dim):
+    def __init__(self, dim, straight_vel, turn_time):
+        # Straight_vel = grid squares per second of velocity
+        # Turn_time = time to turn 90 degrees
         # Dim is a tuple for size of the world
         self.dim = dim
         # Max iters
@@ -19,7 +21,8 @@ class Planner(object):
         # Up left down right
         self.coords_to_check = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         # 1/Velocity -- how many squares per second does the robot move
-        self.dt = 0.5
+        self.dt = 1/straight_vel
+        self.turn_time = turn_time
 
 
     def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan, t_step=4):
@@ -258,9 +261,20 @@ class Planner(object):
         points = []
         if current_time is None:
             current_time = 0
+        time = current_time
         for i in range(len(path)):
-            times.append(current_time + self.dt*i)
+            if i > 2:
+                curr = path[i]
+                prev = path[i - 1]
+                pprev = path[i - 2]
+                diff0 = (curr[0] - prev[0], curr[1] - prev[1])
+                diff1 = (prev[0] - pprev[0], prev[1] - pprev[1])
+                # If we turn, add turn compensation
+                if diff0[0] != diff1[0] or diff0[1] != diff1[1]:
+                    time += self.turn_time
+            times.append(time)
             points.append(path[i])
+            time += self.dt
         return times, points
 
     def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, current_time=None, previous_tree=None):
