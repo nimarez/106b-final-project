@@ -37,12 +37,12 @@ class Planner(object):
                 textcolor = "lightcoral"
             plt.plot(x, y, color) 
             for i, (xitem, yitem, t) in enumerate(zip(x, y, times)):
-                if i % t_step == 0:
+                if t_step > 0 and i % t_step == 0:
                     plt.text(xitem, yitem, str(t), color=textcolor)
             is_plan = False
         plt.gca().set_xticks([x - 0.5 for x in plt.gca().get_xticks()][1:], minor='true')
         plt.gca().set_yticks([y - 0.5 for y in plt.gca().get_yticks()][1:], minor='true')
-        plt.grid(which='minor')
+        #plt.grid(which='minor')
         plt.show()
 
     def _generate_spanning_tree(self, large_map, start_pos, previous_tree=None):
@@ -349,17 +349,17 @@ if __name__ == "__main__":
     custom = Custom(([0, 1, 2], [(2, 1), (1, 1), (0, 1)]), 0.9)
 
     # Uncomment to generate random occupancy
-    #prob = 0.95
-    #occ = np.random.choice([0, 1], size=(30, 30), p=[prob, 1 - prob])
-    #occ[0][0] = 0
-    #occ = double_array(occ)
-    #start_pos = (0, 0)
+    prob = 0.85
+    occ = np.random.choice([0, 1], size=(20, 20), p=[prob, 1 - prob])
+    occ[0][0] = 0
+    occ = double_array(occ)
+    start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
     #occ = double_array(occ)
     #start_pos = (0, 2)
 
-    objects = [custom]
+    objects = []
     _, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
-    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
+    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=0)
