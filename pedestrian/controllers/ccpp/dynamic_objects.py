@@ -50,7 +50,9 @@ class Human(DynamicObject):
         self.goal = goal
         self.speed = speed # squares per second I guess?
         self.directions = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-    
+        self.required_distancesq = 1
+
+
     def get_traj(self, extended_occupancy_map, dt=0.5):
         # Assumes human walks in a uniform velocity along the shortest path from start to goal.
         # Assumes only static obstacles exist.
@@ -96,6 +98,8 @@ class Human(DynamicObject):
         else:
             print("Goal not found")
             return None
+
+    
 
             
 

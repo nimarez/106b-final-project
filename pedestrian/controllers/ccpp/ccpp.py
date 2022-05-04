@@ -24,6 +24,7 @@ class CCPPController(Supervisor):
         # right motor
         self.right_motor = self.getDevice("right wheel motor")
         self.right_motor.setPosition(float('inf'))
+
         # left motor
         self.left_motor = self.getDevice("left wheel motor")
         self.left_motor.setPosition(float('inf'))
@@ -36,7 +37,7 @@ class CCPPController(Supervisor):
         # get map_size
         self.map_size = self.getFromDef("ARENA").getField('floorSize').getSFVec2f()[0]
 
-        self.safe_map_size = self.map_size - 0.3
+        self.safe_map_size = self.map_size - 0.5
         
         self.oc_map = generate_occupancy_map(self.safe_map_size, self.dim, self)
         
@@ -50,21 +51,21 @@ class CCPPController(Supervisor):
         
         human_way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in human_way_indices]
         
-        cyclical_path = human_way_points + list(reversed(human_way_points))[1:]
+        # cyclical_path = human_way_points + list(reversed(human_way_points))[1:]
         
-        s = ",".join([f"{x} {y}" for x, y in cyclical_path])
+        distraction = 200
+        for _ in range(distraction):
+            human_way_points.append((10, 10))
+            human_way_points.append((10, 9))
+
+        
+        s = ",".join([f"{x} {y}" for x, y in human_way_points])
         arg = f"--trajectory={s}"
-        print(arg)
         self.getFromDef("HUMAN").getField('controllerArgs').setMFString(0, arg)
         
         # ------------ HUMAN PARMS END -------------------#
 
-        self.planner = Planner(self.dim)
-
-        new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
-
-        way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
-        
+                
         # ------------ CONTROLLER PARMS BEGIN -------------------#
         
         # Control numbers
@@ -75,13 +76,27 @@ class CCPPController(Supervisor):
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.straightV = 3
+        self.straightV = 5
         #self.desiredV = 3
-        self.turningV = 0
+        self.turningV = 2
         
         self.arrive_distance = 0.01
 
         # ------------ CONTROLLER PARMS END -------------------#
+        
+        # Convert angular velocity to world velocity then to squares/sec
+        # NOTE: Assumes these params are correct
+        wheel_rad = 0.033
+        world_size = 5
+        square_velocity = self.straightV * wheel_rad / 2*3.1415 * self.dim / world_size
+        turn_time = 2/square_velocity # Just random approximation
+        self.planner = Planner(self.dim, square_velocity, turn_time)
+
+        new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [human], (0,0))
+
+        way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
+        
+        print(way_points)
         
         # self.start_pos = way_points[0]
         self.goal_positions = way_points
@@ -117,7 +132,6 @@ class CCPPController(Supervisor):
         else:
             z_rot = -curr_rotation[3]
         alpha = g_theta - z_rot
-        #alpha = g_theta - math.radians(90)
         print("alpha: ", alpha)
         print("sin: ", np.sin(alpha))
         print("cos: ", np.cos(alpha))
