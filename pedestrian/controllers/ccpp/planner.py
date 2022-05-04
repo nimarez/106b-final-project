@@ -40,10 +40,6 @@ class Planner(object):
                 if i % t_step == 0:
                     plt.text(xitem, yitem, str(t), color=textcolor)
             is_plan = False
-        plt.gca().set_xticks([x - 0.5 for x in plt.gca().get_xticks()][1:], minor='true')
-        plt.gca().set_yticks([y - 0.5 for y in plt.gca().get_yticks()][1:], minor='true')
-        plt.grid(which='minor')
-        plt.show()
 
     def _generate_spanning_tree(self, large_map, start_pos, previous_tree=None):
         """

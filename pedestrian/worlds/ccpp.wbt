@@ -3,7 +3,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
-  position 0.01220596266295404 4.335599689238277e-16 8.043917497488085
+  position -2.2997024146360876 2.2451768972647237 0.5119762887583205
   follow "TurtleBot3Burger:Kinect"
   followType "None"
 }
@@ -38,7 +38,7 @@ DEF STATIC Group {
           appearance PBRAppearance {
           }
           geometry Box {
-            size 1 1 1
+            size 1 2 1
           }
         }
       ]
@@ -48,7 +48,7 @@ DEF STATIC Group {
 }
 DEF TURTLEBOT TurtleBot3Burger {
   translation -2.3 2.3 0
-  rotation 0 0 1 0
+  rotation 0 0 1 -1.57
   controller "ccpp"
   supervisor TRUE
   extensionSlot [
