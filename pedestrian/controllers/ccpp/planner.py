@@ -352,7 +352,7 @@ def double_array(arr):
 
 if __name__ == "__main__":
     #random.seed(1)
-    p = Planner(6)
+    p = Planner(6, 1, 1)
 
     #occ = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
     occ = np.array([[0, 0, 0], [0, 0, 0]])
