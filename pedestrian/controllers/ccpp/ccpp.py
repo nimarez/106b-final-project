@@ -78,9 +78,9 @@ class CCPPController(Supervisor):
         self.Ki = 0.01
         self.Kd = 0.01
         
-        self.straightV = 5
+        self.straightV = 4
         #self.desiredV = 3
-        self.turningV = 2
+        self.turningV = 0
         
         self.arrive_distance = 0.01
 
@@ -111,7 +111,7 @@ class CCPPController(Supervisor):
     def control_step(self, goal):
         #inspired by: https://github.com/BurakDmb/DifferentialDrivePathTracking/blob/master/main.py
         
-        print("------")
+        #print("------")
         # Difference in x and y
         d_x = round(goal[0] - self.robot.getField('translation').getSFVec3f()[0], 4)
         #print("dx: ", d_x)
@@ -186,7 +186,7 @@ class CCPPController(Supervisor):
             if self.getSupervisor():
                 left_speed, right_speed = self.control_step(self.goal_positions[0])
                 
-                print(self.getFromDef("TURTLEBOT").getField("translation").getSFVec3f())
+                #print(self.getFromDef("TURTLEBOT").getField("translation").getSFVec3f())
                                 
                 self.left_motor.setVelocity(left_speed)
                 self.right_motor.setVelocity(right_speed)
