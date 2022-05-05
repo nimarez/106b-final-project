@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 from collections import deque
 class DynamicObject(object):
-    def __init__(self):
+    def __init__(self, required_distsq):
         # How far away (squared) from this object the robot must be
-        self.required_distancesq = 1
+        self.required_distancesq = required_distsq
 
     def get_traj(self, extended_occupancy_map, dt=0.5):
         # Return tuple of array of times, array of points
@@ -14,8 +14,8 @@ class DynamicObject(object):
 
 class Custom(DynamicObject):
     def __init__(self, trajectory, dist):
+        super().__init__(dist)
         self.trajectory = trajectory
-        self.required_distancesq = dist
 
     def get_traj(self, extended_occupancy_map):
         return self.trajectory
@@ -23,19 +23,24 @@ class Custom(DynamicObject):
 
 class Projectile(DynamicObject):
     def __init__(self, start, velocity):
+        super().__init__(1)
         # A projectile just moves in a straight line with constant velocity, not necessarily traveling along squares
         self.start = start
         self.velocity = velocity
+        self.max_iters = 100
 
     def get_traj(self, extended_occupancy_map, dt=0.5):
         traj_times, traj_points, t = [], [], 0
         curr_x, curr_y = self.start
         vel_x, vel_y = self.velocity
+        i = 0
         while curr_x >=0 and curr_y >= 0 and curr_x < len(extended_occupancy_map[0]) \
-                                        and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[int(curr_y)][int(curr_x)]:
+                                        and curr_y < len(extended_occupancy_map) and not extended_occupancy_map[int(curr_y)][int(curr_x)] \
+                                        and i < self.max_iters:
             traj_times.append(t)
             traj_points.append((curr_x, curr_y))
             t += dt
+            i += 1
             curr_x += vel_x * dt
             curr_y += vel_y * dt
         return traj_times, traj_points
@@ -44,13 +49,13 @@ class Projectile(DynamicObject):
 
 class Human(DynamicObject):
     def __init__(self, start, goal, speed):
+        super().__init__(1)
         # start is the start square in small coordinates
         # goal is end goal in small coordinates
         self.start = start
         self.goal = goal
         self.speed = speed # squares per second I guess?
         self.directions = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        self.required_distancesq = 1
 
 
     def get_traj(self, extended_occupancy_map, dt=0.5):

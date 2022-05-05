@@ -18,7 +18,7 @@ class Planner(object):
         # Dim is a tuple for size of the world
         self.dim = dim
         # Max iters
-        self.max_iters = 1000
+        self.max_iters = 100
         # Up left down right
         self.coords_to_check = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         # 1/Velocity -- how many squares per second does the robot move
@@ -61,7 +61,6 @@ class Planner(object):
         """
         # Previous tree should just be a line -- assert this before
         if previous_tree is not None:
-            print(previous_tree)
             start_pos_big = (start_pos[0] // 2, start_pos[1] // 2)
             curr, curr_val = (start_pos_big, previous_tree[start_pos_big])
             while any(curr_val):
@@ -116,10 +115,7 @@ class Planner(object):
                 s3 = extended_occupancy_map[2*y][2*x + 1]
                 s4 = extended_occupancy_map[2*y + 1][2*x + 1]
                 any_objects = np.any(np.array([s1, s2, s3, s4]) == np.ones(4))
-                print(s1, s2, s3, s4)
                 all_filled = np.all(np.array([s1, s2, s3, s4]) == 2*np.ones(4))
-                if all_filled:
-                    print("F", x, y)
                 row.append(int(any_objects or all_filled))
             result.append(row)
         return result
@@ -330,6 +326,7 @@ class Planner(object):
                     dynamic_object_positions.append(aligned_trajectory)
             # Loop through all objects and all times, check if they come too close
             # If any are too close, fail and recreate path from before
+            # NOTE: This assumes that the last object index is not important basically
             fail = False
             fail_index = 0
             for t_index in range(len(times)):
@@ -352,7 +349,13 @@ class Planner(object):
                 continue
             # If no collision, return
             return True, new_occ, tree, times, points
-        return False, new_occ, longest_path[0], longest_path[1], longest_path[2]
+        tree = longest_path[0]
+        times = longest_path[1]
+        points = longest_path[2]
+        if fail_index > 0:
+            curr_pos = points[longest_length - 1]
+            _, tree = self._prune_tree(tree, start_pos, curr_pos)
+        return False, new_occ, tree, times[:longest_length], points[:longest_length]
 
 def double_array(arr):
     # Makes each thing in a matrix 2x2
@@ -383,17 +386,20 @@ if __name__ == "__main__":
     #human = Human((0, 0), (0, 8), 1)
     #human_traj = human.get_traj(occ, dt=10)
 
-    projectile = Projectile((3, 3), (1, 0.5))
+    projectile = Projectile((3, 3), (0, 0))
 
     custom = Custom(([0, 1, 2], [(2, 1), (1, 1), (0, 1)]), 0.9)
 
+    spos = (1.9, 1.9)
+    static = Custom(([0, 100000, 100001], [spos, spos, spos]), 1)
+
     # Uncomment to generate random occupancy
-    prob = 0.9
-    s = 6
-    occ = np.random.choice([0, 1], size=(s, s), p=[prob, 1 - prob])
-    occ[0][0] = 0
-    occ = double_array(occ)
-    start_pos = (0, 0)
+    #prob = 0.9
+    #s = 6
+    #occ = np.random.choice([0, 1], size=(s, s), p=[prob, 1 - prob])
+    #occ[0][0] = 0
+    #occ = double_array(occ)
+    #start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
@@ -401,16 +407,16 @@ if __name__ == "__main__":
     #start_pos = (0, 2)
 
     #random.seed(1)
-    o = []
-    success1, occ1, tree1, pt, pp = p.generate_compatible_plan(occ, o, start_pos)
-    index = 50
-    success2, occ2, tree2, pt2, pp2 = p.generate_compatible_plan(occ1, o, start_pos, current_pos=pp[index], current_time=pt[index], previous_tree=tree1)
-    print(occ1)
-    print(occ2)
-    p.visualize_plan(occ1, o, (pt, pp), t_step=1)
-    p.visualize_plan(occ2, o, (pt2, pp2), t_step=1)
+    #o = []
+    #success1, occ1, tree1, pt, pp = p.generate_compatible_plan(occ, o, start_pos)
+    #index = 50
+    #success2, occ2, tree2, pt2, pp2 = p.generate_compatible_plan(occ1, o, start_pos, current_pos=pp[index], current_time=pt[index], previous_tree=tree1)
+    #print(occ1)
+    #print(occ2)
+    #p.visualize_plan(occ1, o, (pt, pp), t_step=1)
+    #p.visualize_plan(occ2, o, (pt2, pp2), t_step=1)
 
-    #objects = [custom]
-    #success, new_occ, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
-    #print("Success", success)
-    #p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
+    objects = [static]
+    success, new_occ, tree, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
+    print("Success", success)
+    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
