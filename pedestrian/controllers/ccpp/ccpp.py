@@ -61,6 +61,8 @@ class CCPPController(Supervisor):
         
         s = ",".join([f"{x} {y}" for x, y in human_way_points])
         arg = f"--trajectory={s}"
+        start_x, start_y = human_way_points[0]
+        self.getFromDef("HUMAN").getField('translation').setSFVec3f([start_x, start_y, 0])
         self.getFromDef("HUMAN").getField('controllerArgs').setMFString(0, arg)
         
         # ------------ HUMAN PARMS END -------------------#
