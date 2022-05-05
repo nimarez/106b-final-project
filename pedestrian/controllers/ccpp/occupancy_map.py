@@ -35,11 +35,11 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, dim):
     # start with top left corner
     size_in_x = size[0]
     size_in_y = size[1]
+    
     current_x = position[0] - size_in_x / 2
     current_y = position[1] - size_in_y / 2
 
     safe = True
-    
     
     step_value = map_size/dim
     
@@ -49,6 +49,8 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, dim):
             if safe:
                 for i in range(-1, 2):
                     for j in range(-1, 2):
+                        if (grid[1] + i >= dim or grid[0] + j >= dim):
+                            continue
                         oc_map[grid[1] + i][grid[0] + j] = 1
             else:
                 oc_map[grid[1]][grid[0]] = 1
