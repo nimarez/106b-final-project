@@ -245,9 +245,10 @@ class Planner(object):
             previous = current
         return path
 
-    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None, current_time=None):
+    def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None, current_pos=None, current_time=None):
         """
         Generates a path (tree, list of times, list of positions) through an occupancy map
+        If the previous tree and time are set, then generates a path compatible with the previous one and starts at the current time
         Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
         Start pos is position in SMALL COORDINATES
         Dynamic objects is a representation of human intent, e.g. list of dict of time to coordinate
@@ -266,8 +267,10 @@ class Planner(object):
         times = []
         points = []
         if current_time is None:
-            current_time = 0
-        time = current_time
+            time = 0
+        else:
+            path = path[path.index(current_pos):]
+            time = current_time
         for i in range(len(path)):
             if i > 2:
                 curr = path[i]
@@ -295,11 +298,6 @@ class Planner(object):
         new_occ = [x[:] for x in extended_occupancy_map]
         if current_pos is not None:
             complete, pruned_tree = self._prune_tree(previous_tree, start_pos, current_pos)
-            print("Complete", complete)
-            print("Pruned", pruned_tree)
-            print("Current", current_pos)
-            # TODO: Return path properly
-            # TODO: Consider only occupied squares as proper
             for point in complete:
                 new_occ[point[1]][point[0]] = 2
         # NOTE: Assumes that the plan is generated in intervals of self.dt
@@ -309,7 +307,7 @@ class Planner(object):
         longest_length = -1
         for i in range(self.max_iters):
             #print("Trying iteration", i)
-            tree, times, points = self._generate_plan(new_occ, start_pos, pruned_tree, current_time)
+            tree, times, points = self._generate_plan(new_occ, start_pos, pruned_tree, current_pos, current_time)
             if dynamic_object_positions is None:
                 # We only need to set this once
                 # Calculate where the dynamic objects are at each iteration of dt
