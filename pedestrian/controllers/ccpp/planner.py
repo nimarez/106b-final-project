@@ -1,3 +1,4 @@
+from tkinter import N
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -9,7 +10,7 @@ class Planner(object):
     Plans a complete coverage path through an obstacle field in the presence of dynamic obstacles
     See functions for more documentation
 
-    Extended occupancy map: 2d matrix of integers, 0=unoccupied, 1=obstacle, 2=already completed
+    Extended occupancy map: 2d matrix of integers, 0=unoccupied, 1=obstacle, 0.5=already completed
     """
     def __init__(self, dim, straight_vel, turn_time):
         # Straight_vel = grid squares per second of velocity
@@ -26,7 +27,9 @@ class Planner(object):
 
 
     def visualize_plan(self, extended_occupancy_map, dynamic_objects, plan, t_step=4):
-        plt.matshow(extended_occupancy_map)
+        modified_occ = 1/np.array(extended_occupancy_map)
+        modified_occ[modified_occ == np.inf] = 0
+        plt.matshow(modified_occ)
         trajectories = [obj.get_traj(extended_occupancy_map) for obj in dynamic_objects]
         is_plan = True
         for (times, points) in [plan] + trajectories:
@@ -52,16 +55,18 @@ class Planner(object):
         """
         Generates a (not minimal) spanning tree, returns a dictionary of (pos) --> [boolean for up down left right if it connects]
         large_map: Returned from _largify_cells, binary matrix for large cells for spanning tree algorithm
-        start_pos: tuple of (x, y) starting position in large coordinates
+        start_pos: tuple of (x, y) starting position in SMALL coordinates
         NOTE: This is not deterministic, we can generate random trees each time
         NOTE: Edges are only one way, from parent to child
         """
         # Previous tree should just be a line -- assert this before
         if previous_tree is not None:
-            curr, curr_val = start_pos, previous_tree[start_pos]
+            print(previous_tree)
+            start_pos_big = (start_pos[0] // 2, start_pos[1] // 2)
+            curr, curr_val = (start_pos_big, previous_tree[start_pos_big])
             while any(curr_val):
                 index = curr_val.index(True)
-                curr = (curr[0] + self.coords_to_check[index], curr[1] + self.coords_to_check[index])
+                curr = (curr[0] + self.coords_to_check[index][0], curr[1] + self.coords_to_check[index][1])
                 curr_val = previous_tree[curr]
                 if sum(curr_val) > 1:
                     raise Exception("Previous tree isn't a line:(")
@@ -98,7 +103,8 @@ class Planner(object):
     def _largify_cells(self, extended_occupancy_map):
         """
         Takes in an extended occupancy map and returns a binary occupancy map in large coordinates (2x2 squares)
-        Cuts off the edges if odd-sized, and marks partial occupancy as full occupancy
+        Cuts off the edges if odd-sized, and marks partial occupancy of obstacles as full occupancy
+        Partial occupancy of previously visited cells is marked as unvisited (due to handling of previous paths)
         """
         # Nonzero means either already visited or obstacle, so we just mark as an obstacle essentially
         result = []
@@ -109,13 +115,18 @@ class Planner(object):
                 s2 = extended_occupancy_map[2*y + 1][2*x]
                 s3 = extended_occupancy_map[2*y][2*x + 1]
                 s4 = extended_occupancy_map[2*y + 1][2*x + 1]
-                row.append(int(not(np.all(np.array([s1, s2, s3, s4]) == np.zeros(4)))))
+                any_objects = np.any(np.array([s1, s2, s3, s4]) == np.ones(4))
+                print(s1, s2, s3, s4)
+                all_filled = np.all(np.array([s1, s2, s3, s4]) == 2*np.ones(4))
+                if all_filled:
+                    print("F", x, y)
+                row.append(int(any_objects or all_filled))
             result.append(row)
         return result
 
     def _prune_tree(self, tree, start_pos, current_position):
         """
-        Calculates which squares are filled, partially filled, and unfilled from moving along a tree to the current position
+        Calculates the tree prefix which must be preserved when moving from the current position
         Prunes the tree by removing all nodes in unfilled or filled squares
         This is useful because we can mark the fully visited nodes as obstacles essentially
             It costs nothing to go around them because the paths are all uniform length because space-filling
@@ -123,15 +134,13 @@ class Planner(object):
         tree: Returned from generated spanning tree
         start_position: Start location
         current_position: Current location in tree
-        Returns tuple of (filled, partially filled, unfilled, pruned tree) big squares
+        Returns tuple of (set of completed small squares, pruned tree)
         """
         # NOTE: Assumes that walk tree is deterministic (!!)
-        _, path_points = self._walk_tree(tree, start_pos)
+        path_points = self._walk_tree(tree, start_pos)
         current_index = path_points.index(current_position)
-        completed_points = set(path_points[:current_index])
+        completed_points = set(path_points[:current_index + 1])
         # Returns the set of unfilled squares, completely filled squares, and partially filled squares
-        unfilled = set()
-        complete = set()
         partial = set()
         for (x, y) in tree:
             p0 = (2*x, 2*y) in completed_points
@@ -139,16 +148,12 @@ class Planner(object):
             p2 = (2*x, 2*y + 1) in completed_points
             p3 = (2*x + 1, 2*y + 1) in completed_points
             arr = [p0, p1, p2, p3]
-            if all(arr):
-                complete.add((x, y))
-            elif not any(arr):
-                unfilled.add((x, y))
-            else:
+            if sum(arr) > 0 and sum(arr) < 4:
                 partial.add((x, y))
         pruned_tree = {}
         current = start_pos
         while current is not None:
-            partial_edges = [(current[0] + offset[0], current[1] + offset[1]) in partial for offset in self.points_to_check]
+            partial_edges = [(current[0] + offset[0], current[1] + offset[1]) in partial for offset in self.coords_to_check]
             both = [a and b for (a, b) in zip(tree[current], partial_edges)]
             pruned_tree[current] = [False, False, False, False]
             if sum(both) == 0:
@@ -157,12 +162,12 @@ class Planner(object):
             elif sum(both) == 1:
                 index = both.index(True)
                 pruned_tree[current][index] = True
-                offset = self.points_to_check[index]
+                offset = self.coords_to_check[index]
                 current = (current[0] + offset[0], current[1] + offset[1])
             else:
                 # This shouldn't happen
                 raise Exception("Not a line potential:(")
-        return unfilled, complete, partial, pruned_tree
+        return completed_points, pruned_tree
 
     def _walk_tree(self, tree, start_pos):
         """
@@ -242,8 +247,9 @@ class Planner(object):
 
     def _generate_plan(self, extended_occupancy_map, start_pos, previous_tree_pruned=None, current_time=None):
         """
-        Generates a path (dict of time to position) through an occupancy map
+        Generates a path (tree, list of times, list of positions) through an occupancy map
         Extended occupancy map is same as occupancy map but with the potential for a square to be already explored
+        Start pos is position in SMALL COORDINATES
         Dynamic objects is a representation of human intent, e.g. list of dict of time to coordinate
         When starting out, current_pos and previous_tree are not needed
             Can set these to regenerate part of the path
@@ -275,28 +281,35 @@ class Planner(object):
             times.append(time)
             points.append(path[i])
             time += self.dt
-        return times, points
+        return tree, times, points
 
     def generate_compatible_plan(self, extended_occupancy_map, dynamic_objects, start_pos, current_pos=None, current_time=None, previous_tree=None):
         """
         Calls generate_plan until one is found which doesn't intersect with the dynamic objects
         Additionally updates the occupancy map with the previously completed path
-        Returns tuple of (updated occupancy map with filled in squares from the previous run, plan times, plan points)
+        Returns tuple of (complete path found, updated occupancy map with filled in squares from the previous run, tree, plan times, plan points)
         """
         pruned_tree = None
         complete = None
         # Duplicate occupancy
         new_occ = [x[:] for x in extended_occupancy_map]
         if current_pos is not None:
-            _, complete, _, pruned_tree = self._prune_tree(previous_tree, current_pos)
+            complete, pruned_tree = self._prune_tree(previous_tree, start_pos, current_pos)
+            print("Complete", complete)
+            print("Pruned", pruned_tree)
+            print("Current", current_pos)
+            # TODO: Return path properly
+            # TODO: Consider only occupied squares as proper
             for point in complete:
-                new_occ[point] = 2
+                new_occ[point[1]][point[0]] = 2
         # NOTE: Assumes that the plan is generated in intervals of self.dt
         # It should also be deterministic constant length
         dynamic_object_positions = None
+        longest_path = None
+        longest_length = -1
         for i in range(self.max_iters):
             #print("Trying iteration", i)
-            times, points = self._generate_plan(extended_occupancy_map, start_pos, pruned_tree, current_time)
+            tree, times, points = self._generate_plan(new_occ, start_pos, pruned_tree, current_time)
             if dynamic_object_positions is None:
                 # We only need to set this once
                 # Calculate where the dynamic objects are at each iteration of dt
@@ -304,7 +317,7 @@ class Planner(object):
                 # Have to set it here because we need to know how long the times array is
                 dynamic_object_positions = []
                 for obj in dynamic_objects:
-                    obj_times, obj_points = obj.get_traj(extended_occupancy_map)
+                    obj_times, obj_points = obj.get_traj(new_occ)
                     aligned_trajectory = []
                     current_index = 0
                     for t_index in range(len(times)):
@@ -320,6 +333,7 @@ class Planner(object):
             # Loop through all objects and all times, check if they come too close
             # If any are too close, fail and recreate path from before
             fail = False
+            fail_index = 0
             for t_index in range(len(times)):
                 current_pos = points[t_index]
                 for obj_i, obj_trajectory in enumerate(dynamic_object_positions):
@@ -329,14 +343,18 @@ class Planner(object):
                     distsq = (obj_trajectory[t_index][0] - current_pos[0])**2 + (obj_trajectory[t_index][1] - current_pos[1])**2
                     if distsq <= dynamic_objects[obj_i].required_distancesq:
                         fail = True
+                        fail_index = t_index
                         break
                 if fail:
                     break
+            if fail_index > longest_length:
+                longest_length = fail_index
+                longest_path = tree, times, points
             if fail:
                 continue
             # If no collision, return
-            return new_occ, times, points
-        raise Exception("Exceeded iterations:(")
+            return True, new_occ, tree, times, points
+        return False, new_occ, longest_path[0], longest_path[1], longest_path[2]
 
 def double_array(arr):
     # Makes each thing in a matrix 2x2
@@ -355,7 +373,7 @@ if __name__ == "__main__":
     p = Planner(6, 1, 1)
 
     #occ = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    occ = np.array([[0, 0, 0], [0, 0, 0]])
+    occ = np.array([[0, 1], [0, 0]])
     occ = double_array(occ)
     start_pos = (0, 0)
 
@@ -372,17 +390,29 @@ if __name__ == "__main__":
     custom = Custom(([0, 1, 2], [(2, 1), (1, 1), (0, 1)]), 0.9)
 
     # Uncomment to generate random occupancy
-    #prob = 0.85
-    #occ = np.random.choice([0, 1], size=(20, 20), p=[prob, 1 - prob])
-    #occ[0][0] = 0
-    #occ = double_array(occ)
-    #start_pos = (0, 0)
+    prob = 0.9
+    s = 6
+    occ = np.random.choice([0, 1], size=(s, s), p=[prob, 1 - prob])
+    occ[0][0] = 0
+    occ = double_array(occ)
+    start_pos = (0, 0)
 
     # Edge cases
     #occ = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
     #occ = double_array(occ)
     #start_pos = (0, 2)
 
-    objects = [custom]
-    _, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
-    p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
+    #random.seed(1)
+    o = []
+    success1, occ1, tree1, pt, pp = p.generate_compatible_plan(occ, o, start_pos)
+    index = 50
+    success2, occ2, tree2, pt2, pp2 = p.generate_compatible_plan(occ1, o, start_pos, current_pos=pp[index], current_time=pt[index], previous_tree=tree1)
+    print(occ1)
+    print(occ2)
+    p.visualize_plan(occ1, o, (pt, pp), t_step=1)
+    p.visualize_plan(occ2, o, (pt2, pp2), t_step=1)
+
+    #objects = [custom]
+    #success, new_occ, plan_times, plan_points = p.generate_compatible_plan(occ, objects, start_pos)
+    #print("Success", success)
+    #p.visualize_plan(occ, objects, (plan_times, plan_points), t_step=1)
