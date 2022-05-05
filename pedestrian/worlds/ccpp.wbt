@@ -35,7 +35,7 @@ DEF STATIC Group {
   ]
 }
 DEF TURTLEBOT TurtleBot3Burger {
-  translation -2.25 2.25 0
+  translation -2.25 2.25 -0.000332034
   controller "ccpp"
   supervisor TRUE
   extensionSlot [

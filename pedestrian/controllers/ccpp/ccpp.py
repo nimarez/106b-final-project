@@ -29,7 +29,6 @@ class CCPPController(Supervisor):
         self.left_motor = self.getDevice("left wheel motor")
         self.left_motor.setPosition(float('inf'))
         
-        
         # number of cells on row / column to divide world into
         # assumes: square world
         self.dim = 20
@@ -46,8 +45,8 @@ class CCPPController(Supervisor):
         human_goal = (9, 0)
         speed = 1
         
-        human = Human(human_start, human_goal, speed)
-        times, human_way_indices = human.get_traj(self.oc_map)
+        self.human = Human(human_start, human_goal, speed)
+        times, human_way_indices = self.human.get_traj(self.oc_map)
         
         human_way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in human_way_indices]
         
@@ -94,19 +93,23 @@ class CCPPController(Supervisor):
         turn_time = 2/square_velocity # Just random approximation
         self.planner = Planner(self.dim, square_velocity, turn_time)
 
-        new_occ, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [human], (0,0))
-
+        succes, new_occ, tree, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [self.human], (0,0))
+        self.oc_map = new_occ
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
         
         print(way_points)
-        print(times)
+        #print(times)
         
         # self.start_pos = way_points[0]
         self.goal_positions = way_points
         #self.goal_positions = [[0,0], [1,0], [1,1], [0,1],[0,0], [1,0], [1,1], [0,1],[0,0], [1,0], [1,1], [0,1]]
+        #self.goal_positions = [[0,0], [1,0], [0,0], [1,0]]
         
         if self.getSupervisor():
             self.robot = self.getSelf()
+        
+        # To replan after 10 sec
+        self.replanned = False
           
     def control_step(self, goal):
         #inspired by: https://github.com/BurakDmb/DifferentialDrivePathTracking/blob/master/main.py
@@ -185,6 +188,15 @@ class CCPPController(Supervisor):
             CURRENT_TIME += self.timeStep
             if self.getSupervisor():
                 left_speed, right_speed = self.control_step(self.goal_positions[0])
+                #if CURRENT_TIME >= 30*1000 and self.replanned == False:
+                #    # replan!
+                #    print("REPLAN")
+                #    current_pos = get_grid_index_at_pos(self.robot.getField('translation').getSFVec3f()[0], self.robot.getField('translation').getSFVec3f()[1])
+                #    current_time = 
+                #   succes, new_occ, tree, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [self.human], (0,0), current_pos, )
+                #    way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
+                #    print(way_points)
+                #    self.replanned = True
                 
                 #print(self.getFromDef("TURTLEBOT").getField("translation").getSFVec3f())
                                 
