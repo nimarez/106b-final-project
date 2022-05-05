@@ -32,7 +32,7 @@ class CCPPController(Supervisor):
         
         # number of cells on row / column to divide world into
         # assumes: square world
-        self.dim = 10
+        self.dim = 20
         
         # get map_size
         self.map_size = self.getFromDef("ARENA").getField('floorSize').getSFVec2f()[0]
@@ -74,7 +74,7 @@ class CCPPController(Supervisor):
         self.E = 0   # Cummulative error
         self.old_e = 0  # Previous error
         
-        self.Kp = 1
+        self.Kp = 1.5
         self.Ki = 0.01
         self.Kd = 0.01
         
@@ -103,7 +103,7 @@ class CCPPController(Supervisor):
         
         # self.start_pos = way_points[0]
         self.goal_positions = way_points
-        # self.goal_positions = [[0,0], [1,0], [0,0],[1,0], [0, 0], [1,0]]
+        #self.goal_positions = [[0,0], [1,0], [1,1], [0,1],[0,0], [1,0], [1,1], [0,1],[0,0], [1,0], [1,1], [0,1]]
         
         if self.getSupervisor():
             self.robot = self.getSelf()
@@ -159,7 +159,7 @@ class CCPPController(Supervisor):
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
         w = np.arctan2(np.sin(w), np.cos(w))
         # print("w: ", w)
-        if abs(w) > 0.2:
+        if abs(w) > 0.1:
             v = self.turningV
             # print("turning")
         else:
