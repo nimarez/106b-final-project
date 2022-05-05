@@ -2,7 +2,7 @@ from controller import Robot, Camera, Motor, Node, Supervisor
 from occupancy_map import generate_occupancy_map
 from dynamic_objects import Projectile, Human
 from planner import Planner
-from utils import get_pos_at_grid_index, get_grid_index_at_pos
+from utils import get_pos_at_grid_index, get_grid_index_at_pos, get_vel_in_world_co_per_second, get_vel_in_grid_per_second
 import logging
 
 import numpy as np
@@ -63,6 +63,9 @@ class CCPPController(Supervisor):
         start_x, start_y = human_way_points[0]
         self.getFromDef("HUMAN").getField('translation').setSFVec3f([start_x, start_y, 0])
         self.getFromDef("HUMAN").getField('controllerArgs').setMFString(0, arg)
+        transformed_speed = get_vel_in_world_co_per_second(speed, self.safe_map_size, self.dim)
+        speed_arg = f"--speed={transformed_speed}"
+        self.getFromDef("HUMAN").getField('controllerArgs').setMFString(1, speed_arg)
         
         # ------------ HUMAN PARMS END -------------------#
 
