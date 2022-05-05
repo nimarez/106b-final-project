@@ -97,6 +97,7 @@ class CCPPController(Supervisor):
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
         
         print(way_points)
+        print(times)
         
         # self.start_pos = way_points[0]
         self.goal_positions = way_points
@@ -111,9 +112,9 @@ class CCPPController(Supervisor):
         print("------")
         # Difference in x and y
         d_x = round(goal[0] - self.robot.getField('translation').getSFVec3f()[0], 4)
-        print("dx: ", d_x)
+        #print("dx: ", d_x)
         d_y = round(goal[1] - self.robot.getField('translation').getSFVec3f()[1], 4)
-        print("dy: ", d_y)
+        #print("dy: ", d_y)
         
         if self.is_arrived(d_x,d_y):
             if len(self.goal_positions) > 1:
@@ -123,7 +124,7 @@ class CCPPController(Supervisor):
 
         # Angle from robot to goal
         g_theta = np.arctan2(d_y, d_x)
-        print("theta: ", g_theta)
+        #print("theta: ", g_theta)
         
         # Error between the goal angle and robot angle
         curr_rotation = self.robot.getField('rotation').getSFRotation()
@@ -132,12 +133,12 @@ class CCPPController(Supervisor):
         else:
             z_rot = -curr_rotation[3]
         alpha = g_theta - z_rot
-        print("alpha: ", alpha)
-        print("sin: ", np.sin(alpha))
-        print("cos: ", np.cos(alpha))
+        #print("alpha: ", alpha)
+        #print("sin: ", np.sin(alpha))
+        #print("cos: ", np.cos(alpha))
         e = np.arctan2(np.sin(alpha), np.cos(alpha))
-        print("e: ", e)
-        print(e)
+        #print("e: ", e)
+        #print(e)
         e_P = e
         e_I = self.E + e
         while (abs(e_I) > 2*math.pi):
