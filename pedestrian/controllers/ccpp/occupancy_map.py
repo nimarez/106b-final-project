@@ -39,7 +39,7 @@ def add_rectangle_to_occupancy(size, position, oc_map, map_size, dim):
     current_x = position[0] - size_in_x / 2
     current_y = position[1] - size_in_y / 2
 
-    safe = True
+    safe = False
     
     step_value = map_size/dim
     
