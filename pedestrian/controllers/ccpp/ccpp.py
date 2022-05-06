@@ -99,9 +99,7 @@ class CCPPController(Supervisor):
         succes, new_occ, tree, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [self.human], (0,0))
         self.oc_map = new_occ
         way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
-        
-        print(way_points)
-        #print(times)
+
         
         # self.start_pos = way_points[0]
         self.goal_positions = way_points
