@@ -1,7 +1,11 @@
+#!/usr/bin/env python3
 import rospy
+import math
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-import np
+import numpy as np
+from planner import Planner
+from utils import get_pos_at_grid_index
 
 class Controller():
     def __init__(self):
@@ -21,7 +25,7 @@ class Controller():
         #self.desiredV = 3
         self.turningV = 0
         
-        self.arrive_distance = 0.05
+        self.arrive_distance = 0.1
 
         # ------------ CONTROLLER PARMS END -------------------#
         
@@ -35,12 +39,12 @@ class Controller():
         self.oc_map = np.zeros((self.dim, self.dim))
 
         succes, new_occ, tree, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
-        way_points = [get_pos_at_grid_index(i, j, self.safe_map_size, self.dim) for i, j in way_indices]
+        way_points = [get_pos_at_grid_index(i, j, world_size, self.dim) for i, j in way_indices]
         self.goal_positions = way_points
 
         rospy.init_node("controller", anonymous=False)
         rospy.on_shutdown(self.shutdown)
-        self.cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+        self.cmd_vel = rospy.Publisher("/mobile_base/commands/velocity", Twist, queue_size=10)
         self.initial = None
         self.odom = rospy.Subscriber("/odom", Odometry, self.callback, queue_size=10)
 
@@ -53,19 +57,28 @@ class Controller():
         r = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.initial is not None:
-                rel_x = self.orientation.pose.x - self.initial.pose.x
-                rel_y = self.orientation.pose.y - self.initial.pose.y
-                rel_theta = np.pi*(self.orientation.twist.z - self.initial.twist.z)
+                rel_x = self.orientation.pose.pose.position.x - self.initial.pose.pose.position.x
+                rel_y = self.orientation.pose.pose.position.y - self.initial.pose.pose.position.y
+                rel_theta = np.pi*(self.orientation.pose.pose.orientation.z - self.initial.pose.pose.orientation.z)
+
+                print("Attempting to go to", self.goal_positions[0])
+                print("At", rel_x, rel_y, rel_theta)
                 
                 v1, v2 = self.control_step(self.goal_positions[0], rel_x, rel_y, rel_theta)
-                move_cmd = vel_to_twist(v1, v2)
+                move_cmd = self.vel_to_twist(v1, v2)
+                print("Moving with", move_cmd)
                 self.cmd_vel.publish(move_cmd)
             r.sleep()
 
-    def vel_to_twist(left_vel, right_vel):
+    def vel_to_twist(self, left_vel, right_vel):
+        # http://planning.cs.uiuc.edu/node659.html
+        # https://kobuki.readthedocs.io/en/release-1.0.x/conversions.html
+        r = 0.035
+        L = 0.230 # TODO Could be wrong
         move_cmd = Twist()
-        move_cmd.linear.x = 0.2
-        move_cmd.angular.z = 0
+        # TODO: Scaling factor might be wrong
+        move_cmd.linear.x = r/2*(right_vel + left_vel)
+        move_cmd.angular.z = r/L*(right_vel - left_vel)
         return move_cmd
           
     def control_step(self, goal, x, y, theta):
@@ -133,10 +146,6 @@ class Controller():
             return True
         else:
             return False
-        
-# main Python program
-controller = CCPPController()
-controller.run()
         
     def shutdown(self):
         self.cmd_vel.publish(Twist())
