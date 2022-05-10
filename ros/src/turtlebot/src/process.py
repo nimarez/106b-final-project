@@ -12,34 +12,35 @@ class Controller():
         # number of cells on row / column to divide world into
         # assumes: square world
         self.dim = 6
-        self.map_size = 2
+        self.map_size = 1.5
         # Control numbers
         self.E = 0   # Cummulative error
         self.old_e = 0  # Previous error
         
-        self.Kp = 1.5
-        self.Ki = 0.01
-        self.Kd = 0.01
+        self.w_scale = 1.5
+        self.Kp = self.w_scale*1.5
+        self.Ki = self.w_scale*0.0
+        self.Kd = self.w_scale*0.1
         
-        self.straightV = 0.5
+        self.straightV = 4
         #self.desiredV = 3
         self.turningV = 0
         
-        self.arrive_distance = 0.1
+        self.arrive_distance = 0.4
 
         # ------------ CONTROLLER PARMS END -------------------#
         
         # Convert angular velocity to world velocity then to squares/sec
         # NOTE: Assumes these params are correct
-        world_size = 5
-        square_velocity = self.straightV * self.dim / world_size
+        square_velocity = self.straightV * self.dim / self.map_size
         turn_time = 2/square_velocity # Just random approximation
         self.planner = Planner(self.dim, square_velocity, turn_time)
 
         self.oc_map = np.zeros((self.dim, self.dim))
 
         succes, new_occ, tree, times, way_indices = self.planner.generate_compatible_plan(self.oc_map, [], (0,0))
-        way_points = [get_pos_at_grid_index(i, j, world_size, self.dim) for i, j in way_indices]
+        self.planner.visualize_plan(new_occ, [], (times, way_indices), t_step=1000)
+        way_points = [(i * self.map_size / self.dim, j * self.map_size / self.dim) for i, j in way_indices]
         self.goal_positions = way_points
 
         rospy.init_node("controller", anonymous=False)
@@ -59,14 +60,15 @@ class Controller():
             if self.initial is not None:
                 rel_x = self.orientation.pose.pose.position.x - self.initial.pose.pose.position.x
                 rel_y = self.orientation.pose.pose.position.y - self.initial.pose.pose.position.y
-                rel_theta = np.pi*(self.orientation.pose.pose.orientation.z - self.initial.pose.pose.orientation.z)
+                rel_theta = np.pi*(self.orientation.pose.pose.orientation.z)# - self.initial.pose.pose.orientation.z)
 
                 print("Attempting to go to", self.goal_positions[0])
                 print("At", rel_x, rel_y, rel_theta)
                 
                 v1, v2 = self.control_step(self.goal_positions[0], rel_x, rel_y, rel_theta)
+                print("Temp", v1, v2)
                 move_cmd = self.vel_to_twist(v1, v2)
-                print("Moving with", move_cmd)
+                #print("Moving with", move_cmd)
                 self.cmd_vel.publish(move_cmd)
             r.sleep()
 
@@ -99,18 +101,17 @@ class Controller():
 
         # Angle from robot to goal
         g_theta = np.arctan2(d_y, d_x)
-        #print("theta: ", g_theta)
+        print("target theta: ", g_theta)
         
         # Error between the goal angle and robot angle
         # https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles
         diff = ( g_theta - theta + np.pi ) % (2*np.pi) - np.pi
         alpha = (diff + 2*np.pi) if (diff < -np.pi) else diff
-        #print("alpha: ", alpha)
+        print("alpha: ", alpha)
         #print("sin: ", np.sin(alpha))
         #print("cos: ", np.cos(alpha))
         e = np.arctan2(np.sin(alpha), np.cos(alpha))
-        #print("e: ", e)
-        #print(e)
+        print("e: ", e)
         e_P = e
         e_I = self.E + e
         while (abs(e_I) > 2*math.pi):
@@ -124,14 +125,20 @@ class Controller():
         # velocity with constant speed of v
         # The value of v can be specified by giving in parameter or
         # using the pre-defined value defined above.
-        # print("integral term: ", e_I)
-        # print("derrivative term: ", e_D)
+        print("p term: ", e_P)
+        print("integral term: ", e_I)
+        print("derrivative term: ", e_D)
         w = self.Kp*e_P + self.Ki*e_I + self.Kd*e_D
-        w = np.arctan2(np.sin(w), np.cos(w))
-        # print("w: ", w)
-        if abs(w) > 0.1:
+        #w = self.w_scale*np.arctan2(np.sin(w), np.cos(w))
+        print("w: ", w)
+        t1 = 0.4
+        t2 = 0.1
+        if abs(w) > t1:
             v = self.turningV
             # print("turning")
+        elif abs(w) > t2:
+            scaling = (abs(w) - t2) / (t1 - t2)
+            v = self.turningV*(1 - scaling) + self.straightV*scaling
         else:
             v = self.straightV
             #print("straight")
